@@ -1,0 +1,290 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Ray Tracer, Part 1</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2017</h1>
+<h1 align="middle">Project 3-2: Ray Tracer, Part 2</h1>
+<h2 align="middle">Daniel Khasanov, CS184-ade</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>In this project I added more materials to the ray tracer that did not have uniform bsdfs. Consequentially, the materials had non trivial pdfs and sample functions, which had to be implemented efficiently and accurately in the context of the full pipeline. I also added an environment lighting feature and a camera focusing feature based on thin lens approximation. </p>
+
+<h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+<p align="middle">In order to get objects to reflect like mirrors or transfer light like glass, we need to implement a ray reflect and a ray refract. Both of these are a matrix transform over the normal vector of a collision point with a material. Refraction is more nuanced as it requires the IOR values of the incident materials, which allow us to use Snell's law to find the direction of refraction or compute whether a ray will be internally trapped. </p>
+
+  <div align="middle">
+  <table >
+    <tr>
+      <td colspan="1">
+        <img src="images/1_m0.png" align="middle" width="500px"/>
+        <figcaption align="middle">Max Depth: 0</figcaption>
+        <figcaption align="middle">No reflection or refraction will be visible and thus the spheres are black.</figcaption>
+      </td>
+      <td colspan="1">
+        <img src="images/1_m1.png" align="middle" width="500px"/>
+        <figcaption align="middle">Max Depth: 1</figcaption>
+        <figcaption align="middle">1-bounce reflection is captured on the right sphere, no refractive effects are seen yet as they require at least 2 bounces.</figcaption>
+
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="1">
+        <img src="images/1_m2.png" align="middle" width="500px"/>
+        <figcaption align="middle">Max Depth: 2</figcaption>
+        <figcaption align="middle">Refraction inside the right sphere is seen, the reflection of the right sphere appears the same as a 1-bounce glass material.</figcaption>
+      </td>
+      <td colspan="1">
+        <img src="images/1_m3.png" align="middle" width="500px"/>
+        <figcaption align="middle">Max Depth: 3</figcaption>
+        <figcaption align="middle">Caustics appear on the ground near the right sphere, but not in the reflection.</figcaption>
+      </td>
+    </tr>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="1">
+        <img src="images/1_m4.png" align="middle" width="500px"/>
+        <figcaption align="middle">Max Depth: 4</figcaption>
+        <figcaption align="middle">Caustics appear in the reflection in the left sphere.</figcaption>
+      </td>
+      <td colspan="1">
+        <img src="images/1_m5.png" align="middle" width="500px"/>
+        <figcaption align="middle">Max Depth: 5</figcaption>
+        <figcaption align="middle">Caustics become mroe detailed</figcaption>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <img src="images/1_m100.png" align="middle" width="1000px"/>
+        <figcaption align="middle">Max Depth: 100</figcaption>
+        <figcaption align="middle">Many rays do not reach this depth due to russian roulette.</figcaption>
+      </td>
+    </tr>
+
+  </table>
+</div>
+
+<h2 align="middle">Part 2: Microfacet Material</h2>
+<p> Microfaceted materials are materials that do not have smooth normals on a level too small to model with meshes (and see with the naked eye). What this means in our renderer is that a ray hitting a fragment will not reflect like over the fragment's normal but rather a probabilistic normal (obeying a normal distribution centered at the direction of the fragment). On the back end I had to implement a pdf and an inverse sampling scheme that allowed the use of uniform random variables to sample the normal distribution. </p>
+
+<h4 align="middle"> A look at microfaceted matrials </h5>
+
+<p align="middle"> The paramater alpha is the roughness of the material.</p>
+
+<div align="middle">
+  <table >
+    <tr>
+      <td colspan="2">
+        <img src="images/2_a005.png" align="center" width="1000px"/>
+        <figcaption align="center">Alpha: 0.005</figcaption>
+        <figcaption align="middle">At low alphas, the material appears glossy. There is also more noise at the same sampling rate. The speckles in the image go away at around 1024 samples per pixel.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="2">
+        <img src="images/2_a050.png" align="middle" width="1000px"/>
+        <figcaption align="middle">Alpha: 0.05</figcaption>
+        <figcaption align="middle">This alpha preserves a glossy look but has much less noise.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="2">
+        <img src="images/2_a250.png" align="middle" width="1000px"/>
+        <figcaption align="middle">Alpha: 0.25</figcaption>
+        <figcaption align="middle">At this roughness, the dragon looks lightly brushed.</figcaption>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <img src="images/2_a500.png" align="middle" width="1000px"/>
+        <figcaption align="middle">Alpha: 0.5</figcaption>
+        <figcaption align="middle">This level of roughness provides a gold leaf look. Any higher and the surface emulates a diffuse bsdf.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h4 align="center">Comparison of sampling distributions on a microfaceted material using 64 samples per pixel and 1 sample per light.</h5>
+<p align="center">In order to minimize variance, we want to choose a sampling distribution which weighs the outcomes proportionally to the probability of their occurrence. A uniform sampling distribution will take more samples to converge on the microfaceted materials because it samples the reflected rays as if they were off a diffuse material. In reality, the microfaceted material has a bias to some directions at a given angle. We model this behavior using the Beckmann Normal Distribution Function, so that when we reflect a light ray it prefers directions a real microfaceted material would reflect more light to.
+<div align="center">
+  <table >
+    <tr>
+      <td colspan="1">
+        <img src="images/2_2_uniform.png" align="center" width="600px"/>
+        <figcaption align="center"> Cosine hemisphere sampling. </figcaption>
+        <figcaption> The sampling rate is not enough to capture detail the reflective areas. </figcaption>
+      </td>
+      <td colspan="1">
+        <img src="images/2_2_importance.png" align="middle" width="600px"/>
+        <figcaption align="middle">Importance sampling using a Beckmann Normal Distribution Function.</figcaption>
+        <figcaption align="middle">Most of the reflective areas are clear, a higher alpha or more samples and this would be noise free.</figcaption>
+        
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h4 align="middle">Using real world measurements to model steel.</h4>
+<p>Using a material brdf value table found in this  <a href="https://books.google.com/books?id=DirOQ_PELlgC&pg=PA422&lpg=PA422&dq=conductive+material+eta+k+values+table&source=bl&ots=XqHK5-hvhD&sig=Vx9pjn6oA_g1YpABwojbvhxBcR8&hl=en&sa=X&ved=0ahUKEwjq_YrajPDSAhWrsFQKHddaCQIQ6AEINTAH#v=onepage&q=conductive%20material%20eta%20k%20values%20table&f=false" > book </a> , I centered the eta and K values of a dae file that originally was a gold dragon. I used the gold in the table to reference the orignal value, and scaled to the steel value and adjusted for color by loosely reversing some channels in the spectrum. The render was taken with 128 samples per pixel and 64 light rays per sample, with a max depth of 5.</p> 
+<div align="center">
+  <table >
+    <tr>
+      <td colspan="1">
+        <img src="images/2_3.png" align="center" width="1200px"/>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h2 align="middle">Part 3: Environment Light</h2>
+<p align="middle"> Environment lighting is a lighting scheme that emulates world or outdoor lighting, often given by a bright source that is far away. Rather, we use an environment map which determines the color and brightness of rays coming from the sky (much like a textured emittance material), and project it as a sphere around our scene.</p>
+<div align="center">
+  <table >
+    <tr>
+      <td colspan="2">
+        <img src="images/3_1.jpg" align="center" width="1000px"/>
+        <figcaption align="center">The environment texture used in the examples below </figcaption>
+      </td>
+    </tr>
+    <br>
+    </table>
+    <p align="middle"> In order to make the most out of our samples, we would like to give bias to the points in the map that contribute the most to the outdoor lighting. Importance sampling comes in to play again.</p>
+    <table>
+    <tr>
+      <td colspan="2">
+        <img src="images/probability_debug.png" align="middle" width="1000px"/>
+        <figcaption align="middle">A probability distribution visualization for the environment.</figcaption>
+        <figcaption align="middle">We would like to apply importance sampling on the most illuminated sections of the environment.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h4 align="middle">Examining environment lighting over different sampling techniques and materials.</h4>
+
+<div align="center">
+  <table >
+    <tr>
+      <td colspan="1">
+        <img src="images/3_2_uniform.png" align="middle" width="600px"/>
+        <figcaption align="middle">Uniform sampling with environment lighting.</figcaption>
+        <figcaption align="middle">Although very well lit, some detail is melded together and the grass does not tint the bottom as much.</figcaption>
+      </td>
+      <td colspan="1">
+        <img src="images/3_2_sample.png" align="middle" width="600px"/>
+        <figcaption align="middle">Importance sampling with environment lighting.</figcaption>
+        <figcaption align="middle">A more rich toning from the environment is seen, especially on the right and bottom side of the bunny.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="1">
+        <img src="images/3_3_uniform.png" align="middle" width="600px"/>
+        <figcaption align="middle">Uniform sampling with environment lighting on a microfacet material.</figcaption>
+        <figcaption align="middle"> The environment determines the reflection color on the bunny, although some parts are grainy.</figcaption>
+      </td>
+      <td colspan="1">
+        <img src="images/3_3_sample.png" align="middle" width="600px"/>
+        <figcaption align="middle">Importance sampling with environment lighting on a microfacet material.</figcaption>
+        <figcaption align="middle">The ears of the bunny are clearer, and the sun on the right makes a smooth specular despite using the same number of samples.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h2 align="middle">Part 4: Depth of Field</h2>
+<p align="center">We simulate the behavior of a camera lens by emitting camera rays distributed according to a thin lens approximation. We establish a focal point and sample over the lens. Each sample travels in the direction of the focus point. Our direct lighting sampling scheme takes care of the rest!</p>
+
+<h4 align="middle"> Increasing the focus point with the same aperture (lens sample space) size</h4>
+<div align="center">
+  <table >
+    <tr>
+      <td colspan="1">
+        <img src="images/4_4.png" align="middle" width="1000px"/>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="1">
+        <img src="images/4_5.png" align="middle" width="1000px"/>
+       
+      </td>
+    </tr>
+    <tr>
+      <td colspan="1">
+        <img src="images/4_6.png" align="middle" width="1000px"/>
+        
+      </td>
+    </tr>
+    <tr>
+      <td colspan="1">
+        <img src="images/4_7.png" align="middle" width="1000px"/>
+        
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h4 align="middle"> Increasing the aperture size with constant focus point (lens sample space)</h4>
+<div align="center">
+  <table >
+    <tr>
+      <td colspan="1">
+        <img src="images/4_0.png" align="middle" width="1000px"/>
+        <figcaption align="middle">b =0.01</figcaption>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="1">
+        <img src="images/4_1.png" align="middle" width="1000px"/>
+        <figcaption align="middle">b = 0.06</figcaption>
+       
+      </td>
+    </tr>
+    <tr>
+      <td colspan="1">
+        <img src="images/4_2.png" align="middle" width="1000px"/>
+        <figcaption align="middle">b = 0.12</figcaption>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="1">
+        <img src="images/4_3.png" align="middle" width="1000px"/>
+        <figcaption align="middle">b = 0.24</figcaption>   
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h4 align="middle"> Lastly, a well-tuned aperture size and focus.</h4>
+<img src="images/4_X.png" align="middle" width="1200px"/>
+
+</div>
+</body>
+</html>
