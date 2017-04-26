@@ -1,0 +1,431 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Mesh Editor</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2017</h1>
+<h1 align="middle">Project 2: Mesh Editor</h1>
+<h2 align="middle">Daniel Khasanov, CS184-ade</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>In this project I implemented a handful of techniques to manipulate meshes and illuminate them in a rendering scheme. The main goal was to be able to control the level of detail via subdivision and smoothing, and mimic real world light behavior using Phong lighting. </p>
+
+<h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
+
+<h3 align="middle">Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
+
+<p>De Casteljau's algorithm is a way to derive a smooth curve from a set of connected control points. The algorithm works iteratively to compute a point on the smooth curve. At each step a new set of points is computed from the latest points by linearly interpolating consecutive points using a factor t. Each iteration reduces the number of latest points by 1, and we stop until we reach one point. I implemented this using a 2d array which holds the latest points at each stage.</p>
+
+<div >
+  <table >
+    <tr >
+      <td>
+        <img src="images/1-1.png" align="middle" width="300px"/>
+        <figcaption align="middle">Original control points.</figcaption>
+      </td>
+      <td>
+        <img src="images/1-2.png" align="middle" width="300px"/>
+        <figcaption align="middle">Iteration 1.</figcaption>
+      </td>
+      <td>
+        <img src="images/1-3.png" align="middle" width="300px"/>
+        <figcaption align="middle">Iteration 2.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      
+      <td>
+        <img src="images/1-4.png" align="middle" width="300px"/>
+        <figcaption align="middle">Iteration 3.</figcaption>
+      </td>
+      <td>
+        <img src="images/1-5.png" align="middle" width="300px"/>
+        <figcaption align="middle" width="400px">Iteration 4.</figcaption>
+      </td>
+      <td>
+        <img src="images/1-6.png" align="middle" width="300px"/>
+        <figcaption align="middle">Iteration 5.</figcaption>
+      </td>
+    </tr>
+    <br>
+
+    <tr>
+      <td>
+        <img src="images/1-7.png" align="middle" width="300px"/>
+        <figcaption align="middle">Iteration 6, derived point.</figcaption>
+      </td>
+      <td>
+        <img src="images/1-8.png" align="middle" width="300px"/>
+        <figcaption align="middle">High t, points lean towards second end.</figcaption>
+      </td>
+      <td>
+        <img src="images/1-9.png" align="middle" width="300px"/>
+        <figcaption align="middle">Low t, points lean towards first end.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/1-10.png" align="middle" width="900px"/>
+        <figcaption align="middle">Sine-like structure from box control points.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/1-11.png" align="middle" width="900px"/>
+        <figcaption align="middle">Loops derived from loops in control points.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/1-12.png" align="middle" width="900px"/>
+        <figcaption align="middle">Control points do not always contribute to detail in the bezier curve.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+<h3 align="middle">Part 2: Bezier surfaces with separable 1D de Casteljau subdivision</h3>
+<p>Bezier surfaces are an extension of bezier curves that use a grid of control points instead of a line along with two factors t and u. Seperable 1D De Casteljau subdivion creates the surface by first computing the singular points of each row of control points using t, and then treats those interpolated points as a bezier curve, interpolating using u. Every point on the resulting surface corresponds to a value of u and v.</p>
+
+<div >
+  <table >
+    <tr>
+      <td >
+        <img src="images/2-1.png" align="middle" width="900px"/>
+        <figcaption align="middle">A teapot made usign bezier surfaces.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h2 align="middle">Section II: Sampling</h2>
+
+<h3 align="middle">Part 3: Average normals for half-edge meshes</h3>
+<p>To achieve a smoother look in the Open-GL shader, we integrate the normals of each vertex into the equation. The normal of a vertex is the average of its incident faces, weighed by face area. This can be efficiently computed by iterating over a vertex's incident halfedges and performing a cross product with another halfedge in the same face, the cross product of two halfedges returns a vector whose normal is the normal of the subtended face, and magnitude is 2 times the area of the subtended face (given the face is a triangle).</p>
+
+<div>
+  <table>
+    <tr>
+      <td colspan="3">
+        <img src="images/3-1.png" align="middle" width="900px"/>
+        <figcaption align="middle">A teapot mesh shaded using Open-GL without smoothed normals.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/3-2.png" align="middle" width="900px"/>
+        <figcaption align="middle">With smoothed normals.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h3 align="middle">Part 4: Half-edge flip</h3>
+<p>An edge flip is essentially a reassignment of many pointers in the underlying halfedges, edges, vertices, and faces that hold a mesh. I first sketched a simple edge flip by hand and enumerated the essential pointer reassignments. To avoid tedious debugging, I reassigned the pointers of every object involved in the flip and iteratively reduced to what was essential. This also generated a framework for basic mesh operations that would come in handy later. </p>
+
+<div>
+  <table>
+    <tr>
+      <td colspan="3">
+        <img src="images/4-1.png" align="middle" width="900px"/>
+        <figcaption align="middle">A basic ball mesh before edge flips.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/4-2.png" align="middle" width="900px"/>
+        <figcaption align="middle">The same ball mesh with several edge flips. This illustrates the power of flipping an edge to increase or reduce detail.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h3 align="middle">Part 5: Half-edge split</h3>
+<p>An edge split is similar to a flip, but requires the instantiation of some new objects. Specifically, at least three new edges, two new faces, and one new vertex must be created. The rest is ensuring that all the pointers in every touched object point to the correct vertex. In this implementation, the halfedge of the generated vertex is the original halfedge of the edge that was split. </p>
+
+<p> Debugging was relatively painless as I had done several examples by hand and enumerated the pointers necessary. As a result the code created could probably be reduced at the cost of readability and guaranteed behavior.</p>
+<p>
+  While this implementation took care of splitting the incident faces, some programs do not support this. This is because the behavior of splitting is not well defined for nontriangular faces, and the same can be replicated by deletion and reinsertion of edges and faces.
+</p> 
+
+<div>
+  <table>
+    <tr>
+      <td colspan="3">
+        <img src="images/4-1.png" align="middle" width="900px"/>
+        <figcaption align="middle">A basic ball mesh before edge flips.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/5-1.png" align="middle" width="900px"/>
+        <figcaption align="middle">Several edges subdivided.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/5-2.png" align="middle" width="900px"/>
+        <figcaption align="middle">After the subdivision, several edges were flipped. Illustrating the danger of flipping edges in concave meshes.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h5> Extra Credit: Boundary edge split</h5>
+<p>
+   The splitting method also has support for boundary edges, as illustrated below. The boundary edges were tricker because a boundary face needs to be added without disrupting the boundary loop. This meant is that the boundary halfedge of the split edge needed to be pushed back and a new boundary halfedge created.
+</p> 
+
+
+<div>
+  <table>
+    <tr>
+      <td colspan="3">
+        <img src="images/ec-1.png" align="middle" width="900px"/>
+        <figcaption align="middle">A mesh of a car frame with boundary edges along the window.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/ec-2.png" align="middle" width="900px"/>
+        <figcaption align="middle">Several splits and and flips done along the boundary edge.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+<h3 align="middle">Part 6: Loop subdivision for mesh upsampling</h3>
+<p>
+  I implemented loop subdivision using the procedure suggested in the assignment. First, I mark all existing edges and vertices as old. Next, I compute new vertex positions for every existing vertex, and the vertices to be added, stored in the vertex and edge elements respectively. These were computed using an interpolation of the locations of the elements' neighbors. next, I subdivided every edge, marking the newly generated cross edges and vertices "new", and passing the new vertex location information from edge to vertex. Then, every new edge that is touching an old vertex and a new vertex is flipped. Lastly, all the vertices are positioned into their new position.
+</p>
+
+<p>
+  During this section, some of the code from the algorithm was ported into the splitting method, this made it easier to keep track of new and old vertices and edges.
+</p>  
+
+<p>
+  Because the algorithm uses several linear passes, debugging this section consisted of running each linear pass in isolation. Unfortunately, some of the steps do not work independently, but they do work independently from steps after them. Thus, each linear pass was iteratively added on, the hardest part was debugging the flipping section, where it a typo was found out to be the culprit: a clandestine pointer was not set correctly and would cause improper behavior in complex examples hard to find by hand.
+</p> 
+
+<div>
+  <table>
+    <tr >
+      <td>
+        <img src="images/6-1.png" align="middle" width="400px"/>
+        <figcaption align="middle">A simple cube mesh.</figcaption>
+      </td>
+      <td>
+        <img src="images/6-2.png" align="middle" width="400px"/>
+        <figcaption align="middle">Iteration 1 of loop subdivision, because of the unbalanced faces, there is warping towards higher degree corners.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/6-3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Iteration 2, more uneven behavior.</figcaption>
+      </td>
+      <td>
+        <img src="images/6-4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Iteration 3, a sad result...</figcaption>
+      </td>
+      
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/6-5.png" align="middle" width="400px"/>
+        <figcaption align="middle" width="400px">This time the cube has been preprocessed to have a cross on each side.</figcaption>
+      </td>
+      <td>
+        <img src="images/6-6.png" align="middle" width="400px"/>
+        <figcaption align="middle">The subdivided mesh is balanced but lacks the character of a cube.</figcaption>
+      </td>
+    </tr>
+
+  </table>
+</div>
+
+<p align="center"> We now see how to make the most out of each vertex. </p>
+
+<div>
+  <table>
+    <tr>
+      <td>
+        <img src="images/6-7.png" align="middle" width="400px"/>
+        <figcaption align="middle" width="400px">The topology is the same as last time, but the centers have been pulled out a little.</figcaption>
+      </td>
+      <br>
+      <td>
+        <img src="images/6-8.png" align="middle" width="400px"/>
+        <figcaption align="middle">The result: a decent sphere!.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<p> A note: it is mathematically impossible to make a perfect 3d sphere using a triangle, quadrilateral, or any "flat shape" based topology. This is the same reason we cannot have an undistorted map of the earth, and why spherical texture projection has its own routine. </p>
+
+<p> For more information follow the link below: </p>
+<a href="https://en.wikipedia.org/wiki/Map_projection#Distortion"> https://en.wikipedia.org/wiki/Map_projection#Distortion </a>
+<br>
+<p>
+  As a 3D artist, it is always a challenge to balance resources and design detail. Subdivision is a great way to transition from a managable mesh to a detailed mesh, and a skilled 3D artist understands the algorithm enough to make the most out of a "low poly" design. We have seen that colinear or coplanar vertices, when subdivided, flatten or sharpen the design. This behavior can be emulated with edge and vertex weights, and a "sharp" flag (as found in blender).
+</p>  
+
+
+<h5> Extra Credit: Boundary subdivision</h5>
+<p>
+   Stemming from the boundary edge split capabilities, all that needed to be done to ensure that boundaries subdivided correctly was accounting for the missing topology that is assumed in internal vertices. Specifically, the boundary vertices need extra weight on their original position, this was done by properly counting the degree and doubling the weight of the original position. As for boundary edges, the missing flank vertex needs to be accounted for. I simply redistributed the weight to the incident vertices' positions. This made the most intuitive sense as it maintained the weights add up to 1 while putting the most weight on the boundary so it would shrink less. 
+</p> 
+
+
+<div>
+  <table>
+    <tr>
+      <td colspan="3">
+        <img src="images/ec-3.png" align="middle" width="900px"/>
+        <figcaption align="middle">A mesh of a car frame.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/ec-4.png" align="middle" width="900px"/>
+        <figcaption align="middle">The headlights deform into nicer circles and the frame smooths its topology out along the boundary.</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h2 align="middle">Section III: Shaders</h2>
+
+<h3 align="middle">Part 7: Fun with shaders</h3>
+<div >
+  <table >
+    <tr >
+      <td>
+        <img src="images/7-1.png" align="middle" width="300px"/>
+        <figcaption align="middle">An attempt at making a teapot lit by a lamp at night.</figcaption>
+      </td>
+      <td>
+        <img src="images/7-2.png" align="middle" width="300px"/>
+        <figcaption align="middle">Phong value 60.</figcaption>
+      </td>
+      <td>
+        <img src="images/7-3.png" align="middle" width="300px"/>
+        <figcaption align="middle">Phong value 120.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/7-4.png" align="middle" width="300px"/>
+        <figcaption align="middle">Ambient.</figcaption>
+      </td>
+      <td>
+        <img src="images/7-5.png" align="middle" width="300px"/>
+        <figcaption align="middle" width="400px">Diffuse.</figcaption>
+      </td>
+      <td>
+        <img src="images/7-6.png" align="middle" width="300px"/>
+        <figcaption align="middle">Phong.</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+
+<h2 align="middle">Section IV: Mesh Competition</h2>
+
+<h3 align="middle">Part 8: Design your own mesh!</h3>
+<p>And now I present to you, a fender growing roots!</p>
+<p>Original mesh creation done in blender.</p>
+
+<div>
+  <table>
+    <tr>
+      <td colspan="3">
+        <img src="images/cont-1.png" align="middle" width="900px"/>
+         <figcaption align="middle">Bask in its glory.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/cont-2.png" align="middle" width="900px"/>
+         <figcaption align="middle">Using a simple phong shader.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/cont-4.png" align="middle" width="900px"/>
+         <figcaption align="middle">An idea I thought of while playing guitar.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/cont-3.png" align="middle" width="900px"/>
+         <figcaption align="middle">No tricks on the back side.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/cont-5.png" align="middle" width="900px"/>
+         <figcaption align="middle">The original mesh, I had to make the levels of detail even in all segments before exporting from blender.</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td colspan="3">
+        <img src="images/cont-6.png" align="middle" width="900px"/>
+         <figcaption align="middle">One level of subdivision, uses a lot of resources to process!</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+<p>As you can see, this is not a mesh man, it is much more. To control the levels of details I managed edge loops and examined the behavior using a subsurf modifier. Unfortunately, due to the exportation-importation limits, I had to join all the meshes together, which is why there are a lot of polygons on seemingly low detail areas. I still think it turned out looking pretty good.</p>
+
+</body>
+</html>

@@ -1,0 +1,188 @@
+#define XMAX 100
+#define YMAX 100
+#define ZMAX 100
+
+uniform int outputID;
+uniform vec3 eyePos;
+//uniform float *brownMap;
+varying vec3 normal;
+varying vec3 vertex;
+varying vec2 texCoord;
+uniform float t_rand;
+uniform sampler2D  myTexture;
+uniform sampler2D envmap;
+
+#define PI 3.1415926
+
+
+vec3 shadeDiffuseFromEye();
+
+vec3 shadePhong(vec3 lightPos);
+
+vec3 shadeEnvmapReflection();
+
+vec3 shadeTextureMap();
+
+//vec4 shadeBasedTime();
+
+void main()
+{
+    if(outputID == 0)
+    {
+        gl_FragColor = vec4(shadeDiffuseFromEye(), 1.0);
+        return;
+    }
+    if(outputID == 1)
+    {
+
+        gl_FragColor = vec4(shadePhong(vec3(10.0, 40.0, 3.0)), 1.0);
+        return;
+    }
+    if(outputID == 2)
+    {
+
+        // Do something interesting here for extra credit.
+        //printf("%.4f\n", envmap[0]);
+        gl_FragColor = vec4(shadeEnvmapReflection(), 1.0);
+        return;
+    }
+    if(outputID == 4)
+    {
+
+        //compute a browning map
+        // Do something interesting here for extra credit.
+        //printf("%.4f\n", envmap[0]);
+        //gl_FragColor = shadeBasedTime();
+        return;
+    }
+    if (outputID == 5) 
+    {
+        
+        gl_FragColor   = vec4 (shadeTextureMap(), 1.0);
+        return;
+    }
+}
+
+vec3 shadeDiffuseFromEye()
+{
+    vec3 n = normalize(normal);
+    vec3 out_vec = normalize(eyePos - vertex);
+    float diffuse = abs(dot(out_vec, n));
+    return vec3(diffuse);
+}
+
+vec3 shadePhong(vec3 lightPos)
+{
+    // TODO Part 7.
+    // TODO Compute Phong shading here. You can choose any color you like. But make
+    // TODO sure that you have noticeable specular highlights in the shading.
+    // TODO Variables to use: eyePos, lightPos, normal, vertex
+    vec3 kp = vec3(9.0, 8.5, 0.1);
+    vec3 ka = vec3(0.2, 0.2, 0.0);
+    vec3 kd = vec3(0.8, 0.75, 0.3);
+    float lightStr = 1000.0;
+    float p = 140.0;
+    float ambient = 0.3;
+
+    vec3 h =  normalize( (eyePos  - vertex) + (lightPos - vertex));
+
+    float irr = lightStr/dot(lightPos - vertex, lightPos - vertex);
+
+
+
+    
+    return vec3( kd*irr*max(0.0, dot(normal, h)) + ka*ambient + kp*irr*pow(max(0.0, dot(normal, h)), p));
+    
+}
+
+vec3 shadeEnvmapReflection()
+{
+    // vec3 st = vertex vec3(0.5, 0.5);
+    //return texture3D(texCoord, vertex).rgb;
+    //vec4 texel = texture2D(tex, gl_TexCoord[0].xy);
+    return vec3(1.0,0.0,0.0);
+
+}
+
+
+
+vec3 shadeTextureMap() {
+    vec3 lightPos = vec3(10.0, 10.0, 10.0);
+    vec3 lightColor = vec3 (texture2D (myTexture, gl_TexCoord[0].st));
+    float lightStr = 300.0;
+
+    vec3 h =  normalize( (eyePos - vertex) + (lightPos - vertex)) ;
+
+    float irr = lightStr/dot(lightPos - vertex, lightPos - vertex);
+    return lightColor*irr*max(0.0, dot(normal, h));
+
+}
+
+float lerp(float a, float b, float t) {
+    return a*(1.0 - t) + t*b;
+}
+
+// float dotGridGradient(int ix, int iy, int iz, float x, float y, float z, float *brownMap) {
+ 
+//      // Precomputed (or otherwise) gradient vectors at each grid node
+ 
+//      // Compute the distance vector
+//      float dx = x - float(ix);
+//      float dy = y - float(iy);
+//      float dz = z - float(iz);
+ 
+//      // Compute the dot-product
+//      return (dx*brownMap[2*(iy*XMAX + ix + iz*YMAX*XMAX)] + dy*brownMap[2*(iy*XMAX + ix + iz*YMAX*XMAX) + 1] + dz*brownMap[2*(iy*XMAX + ix + iz*YMAX*XMAX) + 1]);
+//  }
+
+// vec4 shadeBasedTime()
+// {
+//     // Determine grid cell coordinates
+//     float x = vertex.x;
+//     float y = vertex.y;
+//     float z = vertex.z;
+
+//     int x0 = (x > 0.0 ? int(x) : int(x) - 1);
+//     int x1 = x0 + 1;
+//     int y0 = (y > 0.0 ? int(y) : int(y) - 1);
+//     int y1 = y0 + 1;
+//     int z0 = (z > 0.0 ? int(z) : int(z) - 1);
+//     int z1 = z0 + 1;
+
+//      // Determine interpolation weights
+//      // Could also use higher order polynomial/s-curve here
+//     float sx = x - float(x0);
+//     float sy = y - float(y0);
+//     float sz = z - float(z0);
+
+
+
+//      // Interpolate between grid point gradients
+//     float n0, n1, ix0, ix1, zx0, zx1, value;
+
+//     n0 = dotGridGradient( x0, y0, z0, x, y, z, brownMap);
+//     n1 = dotGridGradient( x1, y0, z0, x, y, z, brownMap);
+
+//     ix0 = lerp(n0, n1, sx);
+
+
+
+//     n0 = dotGridGradient(x0, y1, z0, x, y, z, brownMap);
+//     n1 = dotGridGradient(x1, y1, z0, x, y, z, brownMap);
+//     ix1 = lerp(n0, n1, sx);
+//     zx0 = lerp(ix0, ix1, sy);
+
+//     n0 = dotGridGradient(x0, y0, z1, x, y, z, brownMap);
+//     n1 = dotGridGradient(x1, y0, z1, x, y, z, brownMap);
+//     ix0 = lerp(n0, n1, sx);
+
+//     n0 = dotGridGradient(x0, y1, z1, x, y, z, brownMap);
+//     n1 = dotGridGradient(x1, y1, z1, x, y, z, brownMap);
+//     ix1 = lerp(n0, n1, sx);
+//     zx1 = lerp(ix0, ix1, sy);
+
+//     value = lerp(zx0, zx1, sz);
+
+//     return vec4(value, value, value, 1.0);
+
+// }
