@@ -499,8 +499,38 @@ namespace CGL
     }
   }
 
+
+  //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho and computes the vertex which when touched will make ensure no other vertices are in the ball
   void MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
-    MeshResampler::upsample(mesh);
+
+    //TODO compute the radius list we want by doing some statistics on the points
+
+    //TODO build a mesh acceleration structure (voxel grid), so that we can look at a vertices nearest neighbors
+
+    //TODO Iterating from smallest rho to largest
+
+      //TODO Loop on compute a seed triangle
+
+        //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
+
+        //TODO not_used(), not_internal
+        // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
+
+          //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
+          // 4. output triangle(i,  k , j )
+
+          //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing 
+            //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
+          // 5. join(e(i,j) , k , F)
+
+        // 8 . else
+
+          // TODO function mark an edge as a fixed boundary 
+          // 9 . mark as boundary(e(i;j) )
+
+
+
+    
   }
 
   void MeshResampler::upsample( HalfedgeMesh& mesh )
