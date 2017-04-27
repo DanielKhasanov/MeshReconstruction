@@ -506,8 +506,15 @@ namespace CGL
     Vector3D abXac = cross(ab, ac ) ;
 
     // this is the vector from a TO the circumsphere center
-    return (cross(abXac, ab )*ac.norm2() + cross(ac, abXac )*ab.norm2()) / (2.0*abXac.norm2()) ;
-  } 
+    return a + (cross(abXac, ab )*ac.norm2() + cross(ac, abXac )*ab.norm2()) / (2.0*abXac.norm2()) ;
+  }
+
+  Vector3D circumsphere_center(Vector3D i , Vector3D j, Vector3D o, double rho) {
+    Vector3D c = circumcenter(i, j, o);
+    double alpha_sqr = (c - a).norm2();
+    double x_mag = sqrt((rho*rho) - alpha_sqr);
+    return c + cross(o - i, i - j).unit()*x_mag;
+  }
 
   //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho and computes the vertex which when touched will make ensure no other vertices are in the ball
   void pivot_from( HalfedgeIter inside_halfedge, double rho) {
@@ -551,8 +558,15 @@ namespace CGL
           // TODO function mark an edge as a fixed boundary 
           // 9 . mark as boundary(e(i;j) )
 
-    Vector3D c = circumcenter( Vector3D(1, 0 , 0), Vector3D(0,1,0), Vector3D(0, 0, 0));
-    printf("Circumcenter of triangle at 100 010, 000 is: %4f %4f %4f\n", c.x, c.y, c.z);
+    Vector3D i = Vector3D(123, 456 , 789);
+    Vector3D j = Vector3D(666,66,6);
+    Vector3D o = Vector3D(34, 43.24, -3422.0321);
+    Vector3D c = circumsphere_center( i, j, o, 234556);
+
+    printf("Circumsphere center is : %4f %4f %4f\n", c.x, c.y, c.z);
+    printf("Distance from i is : %4f\n", (i-c).norm());
+    printf("Distance from j is : %4f\n", (j-c).norm());
+    printf("Distance from o is : %4f\n", (o-c).norm());
 
   }
 
