@@ -438,15 +438,12 @@ namespace CGL {
             switch(instance -> type)
             {
               case CAMERA:
-              printf("CAMERA?");
               init_camera(static_cast<Camera&>(*instance));
               break;
               case LIGHT:
-              printf("LIGHT?");
               init_light(static_cast<Light&>(*instance));
               break;
               case POLYMESH:
-              printf("POLY?");
               init_polymesh(static_cast<Polymesh&>(*instance));
               break;
               case MATERIAL:
@@ -551,7 +548,6 @@ namespace CGL {
           camera_angles = Vector3D(0., 0., 0.);
           view_focus    = centroid;
           up = Z_UP;
-          printf("INIT POLYMESH\n");
         }
 
         void MeshEdit::init_material (Material& material)

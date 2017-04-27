@@ -499,12 +499,36 @@ namespace CGL
     }
   }
 
+  Vector3D circumcenter(Vector3D a, Vector3D b, Vector3D c) {
+
+    Vector3D ac = c - a ;
+    Vector3D ab = b - a ;
+    Vector3D abXac = cross(ab, ac ) ;
+
+    // this is the vector from a TO the circumsphere center
+    return (cross(abXac, ab )*ac.norm2() + cross(ac, abXac )*ab.norm2()) / (2.0*abXac.norm2()) ;
+  } 
 
   //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho and computes the vertex which when touched will make ensure no other vertices are in the ball
+  void pivot_from( HalfedgeIter inside_halfedge, double rho) {
+    // Vector3D sigma_i = inside_halfedge->vertex()->position;
+    // Vector3D sigma_j = inside_halfedge->next->vertex()->position;
+    // Vector3D m = 0.5*(sigma_i + sigma_j);
+    // Vector3D sigma_o = inside_halfedge->next->next->vertex()->position;
+
+    // std::vector<Vertex*> rho_closest = accel_struct->f(m , 2*rho);
+    // for (Vertex &v : rho_closest) {
+    //   if (v.position != sigma_o) {
+
+    //   }
+    // }
+
+
+  }
+
   void MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
 
     //TODO compute the radius list we want by doing some statistics on the points
-
     //TODO build a mesh acceleration structure (voxel grid), so that we can look at a vertices nearest neighbors
 
     //TODO Iterating from smallest rho to largest
@@ -515,7 +539,6 @@ namespace CGL
 
         //TODO not_used(), not_internal
         // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
-
           //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
           // 4. output triangle(i,  k , j )
 
@@ -528,9 +551,9 @@ namespace CGL
           // TODO function mark an edge as a fixed boundary 
           // 9 . mark as boundary(e(i;j) )
 
+    Vector3D c = circumcenter( Vector3D(1, 0 , 0), Vector3D(0,1,0), Vector3D(0, 0, 0));
+    printf("Circumcenter of triangle at 100 010, 000 is: %4f %4f %4f\n", c.x, c.y, c.z);
 
-
-    
   }
 
   void MeshResampler::upsample( HalfedgeMesh& mesh )
