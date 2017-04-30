@@ -509,26 +509,53 @@ namespace CGL
     return a + (cross(abXac, ab )*ac.norm2() + cross(ac, abXac )*ab.norm2()) / (2.0*abXac.norm2()) ;
   }
 
-  Vector3D circumsphere_center(Vector3D i , Vector3D j, Vector3D o, double rho) {
+  bool circumsphere_center(Vector3D i , Vector3D j, Vector3D o, double rho, Vector3D& center) {
     Vector3D c = circumcenter(i, j, o);
-    double alpha_sqr = (c - a).norm2();
-    double x_mag = sqrt((rho*rho) - alpha_sqr);
-    return c + cross(o - i, i - j).unit()*x_mag;
+    double alpha_sqr = (c - i).norm2();
+    double discriminant = (rho*rho) - alpha_sqr;
+    if (discriminant < 0.0) {
+      return false;
+    }
+    double x_mag = sqrt(discriminant);
+    center = c + cross(o - i, i - j).unit()*x_mag;
+    return true;
   }
 
-  //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho and computes the vertex which when touched will make ensure no other vertices are in the ball
+  //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho 
+    //and computes the vertex which when touched will make ensure no other vertices are in the ball
+    //Cannot fail on the inside half edge, as it is a well formed triangle via our seed or algorithm prior.
   void pivot_from( HalfedgeIter inside_halfedge, double rho) {
-    // Vector3D sigma_i = inside_halfedge->vertex()->position;
-    // Vector3D sigma_j = inside_halfedge->next->vertex()->position;
-    // Vector3D m = 0.5*(sigma_i + sigma_j);
-    // Vector3D sigma_o = inside_halfedge->next->next->vertex()->position;
 
-    // std::vector<Vertex*> rho_closest = accel_struct->f(m , 2*rho);
-    // for (Vertex &v : rho_closest) {
-    //   if (v.position != sigma_o) {
 
-    //   }
-    // }
+    Vector3D sigma_i = inside_halfedge->vertex()->position;
+    Vector3D sigma_j = inside_halfedge->next->vertex()->position;
+    Vector3D m = 0.5*(sigma_i + sigma_j);
+    Vector3D sigma_o = inside_halfedge->next->next->vertex()->position;
+    Vector3D c_ijo = circumsphere_center(sigma_i, sigma_j, sigma_o, rho);
+
+    std::vector<Vertex*> rho_closest;
+    //rho_closest = accel_struct->f(m , 2*rho);
+    for (Vertex &v : rho_closest) {
+      if (v.position != sigma_o) {
+        Vector3D cx = new Vector3D();
+        if (circumsphere_center(sigma_i, sigma_j, v.position, rho, *cx)) {
+
+          double num_touching = 0;
+          for (Vertex &v : rho_closest) {
+            int dist_from_center = (v.position - cx).norm();
+            if (dist_from_center < rho) {
+              break;
+            } else if (dist_from_center == rho) {
+              num_touching += 1;
+            }
+          }
+
+        } else {
+
+        ;
+
+      }
+    }
 
 
   }
