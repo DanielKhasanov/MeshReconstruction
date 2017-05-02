@@ -2,6 +2,7 @@
 #include "mutablePriorityQueue.h"
 #include <deque>
 #include <algorithm>
+#include <math.h>
 
 #define PI 3.14159265
 
@@ -81,10 +82,10 @@ namespace CGL
     do {
 
       n += cross(  h->vertex()->position - h->twin()->vertex()->position,  h->next()->vertex()->position - h->next()->twin()->vertex()->position);
-      h = h->twin()->next(); 
+      h = h->twin()->next();
 
     } while (h != _halfedge);
-    
+
 
     return n.unit();
   }
@@ -511,7 +512,7 @@ namespace CGL
     }
     printf("Deleted entries\n");
     map.clear();
-    
+
 
     printf("Iterating...\n");
     for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
@@ -547,12 +548,14 @@ namespace CGL
       mod = z_diff;
     }
     printf("Those are done\n");
-    mod = mod / (2.0* rho);
+    mod = mod/(2.0* rho);
+    int count = 0;
     for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+      count++;
       Vector3D p = v->position;
-      int w = (int) p.x % ((int) mod);
-      int h = (int) p.y % ((int) mod);
-      int t = (int) p.z % ((int) mod);
+      int w = (int) (p.x / mod);
+      int h = (int) (p.y / mod);
+      int t = (int) (p.z / mod);
       int hash = ((int) mod) * ((int) mod) * w + ((int) mod) * h + t;
       if (map.find(hash) == map.end()) {
         std::vector<VertexIter > * vec = new std::vector<VertexIter >();
@@ -560,14 +563,14 @@ namespace CGL
       }
       map[hash]->push_back(v);
     }
-      return rho;
+    return rho;
   }
 
   std::vector<VertexIter> MeshResampler::get_neighbors(Vector3D p) {
     printf("getting neighbors\n");
-    int w = (int) p.x % ((int) mod);
-    int h = (int) p.y % ((int) mod);
-    int t = (int) p.z % ((int) mod);
+    int w = (int) (p.x / mod);
+    int h = (int) (p.y / mod);
+    int t = (int) (p.z / mod);
     int hash = ((int) mod) * ((int) mod) * w + ((int) mod) * h + t;
     std::vector<VertexIter>  * vec = new std::vector<VertexIter >();
     for (int i = -((int) mod)*((int) mod); i<= ((int) mod)*((int) mod); i += ((int) mod)*((int) mod)) {
@@ -586,7 +589,7 @@ namespace CGL
     }
     printf("done\n");
     printf("Sorting neighbors\n");
-    std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
+    // std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
     // std::sort( (*vec).begin( ), (*vec).end( ), []( const VertexIter& lhs, const VertexIter& rhs )
     // {
     //   return (lhs->position - v->position).norm() < (rhs->position - v->position).norm();
@@ -617,7 +620,7 @@ namespace CGL
     return true;
   }
 
-  //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho 
+  //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho
     //and computes the vertex which when touched will make ensure no other vertices are in the ball
     //Cannot fail on the inside half edge, as it is a well formed triangle via our seed or algorithm prior.
   bool pivot_from( HalfedgeIter inside_halfedge, double rho, VertexIter& populate, MeshResampler* meshR) {
@@ -688,14 +691,14 @@ namespace CGL
             // printf("candidate vertex at: %4f %4f %4f\n", v->position.x, v->position.y, v->position.z);
             // printf("Candidate center sanity check at %4f %4f %4f \n", cx->x, cx->y, cx->z);
             candidate_vertices.push_back(v);
-          } 
+          }
         }
       }
     }
 
     /*At this point we have accumulated our candidate vertices to add and
-      the center of the ball when it rolls on them in candidate_centers 
-      and candidate_vertices Now we compute the closest center along the 
+      the center of the ball when it rolls on them in candidate_centers
+      and candidate_vertices Now we compute the closest center along the
       3D circle gamma with radius rho centered at m*/
 
     if (candidate_centers.size() == 0) {
@@ -749,7 +752,10 @@ namespace CGL
   bool MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate) {
     HalfedgeIter hIter = h.twin()->twin();
     double rho = 0.4;
-    set_rho(mesh, rho);
+
+
+    rho = set_rho(mesh, rho);
+
     return pivot_from(hIter, rho, populate, this);
   }
 
@@ -772,11 +778,11 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     Vector3D centroid = sum * (1.0 / ((double) n));
 
     // Calc full 3x3 covariance matrix, excluding symmetries:
-    double xx = 0.0; 
-    double xy = 0.0; 
+    double xx = 0.0;
+    double xy = 0.0;
     double xz = 0.0;
-    double yy = 0.0; 
-    double yz = 0.0; 
+    double yy = 0.0;
+    double yz = 0.0;
     double zz = 0.0;
 
     for (VertexIter v : points) {
@@ -818,7 +824,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
   /*Assumes that each point has its normal populated already!*/
   bool make_normals_consistent(std::vector<VertexIter> points) {
     /**Make a decision to which direction it is facing, by computing the dot product of the plane normal
-      *and each point to the point. We would like the normal to be facing the direction that minimizes points 
+      *and each point to the point. We would like the normal to be facing the direction that minimizes points
       *outside of the surface, and thus in front of the plane
       */
 
@@ -881,7 +887,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                         sigma,
                         e1,
                         f);
-      
+
       i2->setNeighbors( i3,
                         o2,
                         beta,
@@ -926,7 +932,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                         sigma,
                         e1,
                         f);
-      
+
       i2->setNeighbors( i3,
                         o2,
                         alpha,
@@ -956,13 +962,13 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     }
     for (VertexIter sigma_alpha : accel_struct) {
 
-      if (sigma_alpha->position.x != sigma->position.x || 
+      if (sigma_alpha->position.x != sigma->position.x ||
           sigma_alpha->position.y != sigma->position.y ||
           sigma_alpha->position.z != sigma->position.z) { /*We cannot use sigma as two points on the triangle*/
 
         for (VertexIter sigma_beta : accel_struct) {
 
-          if ((sigma_beta->position.x != sigma->position.x || sigma_beta->position.y != sigma->position.y || sigma_beta->position.z != sigma->position.z) 
+          if ((sigma_beta->position.x != sigma->position.x || sigma_beta->position.y != sigma->position.y || sigma_beta->position.z != sigma->position.z)
             && (sigma_beta->position.x != sigma_alpha->position.x || sigma_beta->position.y != sigma_alpha->position.y || sigma_beta->position.z != sigma_alpha->position.z)) { /*We cannot use sigma or sigma_alpha as two points on the triangle*/
 
             Vector3D ball_center;
@@ -972,7 +978,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
               normal_orientation = sigma->norm + sigma_alpha->norm + sigma_beta->norm;
               if (dot(normal_orientation, ball_center - ((sigma->position + sigma_alpha->position + sigma_beta->position) * 1.0/3.0)) > 0.0)  {
                 orientable = true;
-              } else if (circumsphere_center(sigma->position , sigma_beta->position, sigma_alpha->position, rho, ball_center)) { 
+              } else if (circumsphere_center(sigma->position , sigma_beta->position, sigma_alpha->position, rho, ball_center)) {
               /*The normal of the computed ball and triangle did not orient with the vertex normals, compute the counterpart ball isntead*/
                 orientable = true;
               } else {
@@ -1048,7 +1054,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
       bool seedFound = false;
       VertexIter sigma_alpha;
       VertexIter sigma_beta;
-      while (!(seedFound) && unused_vertices.size() > 0) { 
+      while (!(seedFound) && unused_vertices.size() > 0) {
         bool candidate_found = false;
         /*Use voxel accel struct to get the closest points here*/
         while (unused_vertices.size() > 0) {
@@ -1130,9 +1136,11 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
           // 4. output triangle(i,  k , j )
 
+
           //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing 
             //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
           // 5. join(e(i,j) , k , F)
+
 
         // 8 . else
 
@@ -1216,29 +1224,29 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     // TODO Next, compute the updated vertex positions associated with edges, and store it in Edge::newPosition.
     for( EdgeIter e = mesh.edgesBegin(); e != mesh.edgesEnd(); e++ ) {
       e->isNew = false;
-      
+
 
       if (e->halfedge()->face()->isBoundary()) {
-        /*Edge is pointing to the boundary halfedge*/ 
-        e->newPosition = (3.5/8.0)*(e->halfedge()->vertex()->position + 
+        /*Edge is pointing to the boundary halfedge*/
+        e->newPosition = (3.5/8.0)*(e->halfedge()->vertex()->position +
         e->halfedge()->twin()->vertex()->position)   +
-        (e->halfedge()->twin()->next()->next()->vertex()->position)/8.0; 
+        (e->halfedge()->twin()->next()->next()->vertex()->position)/8.0;
 
       } else if (e->halfedge()->twin()->face()->isBoundary()) {
-        /*Edge is pointing to the non boundary halfedge*/ 
-        e->newPosition = (3.5/8.0)*(e->halfedge()->vertex()->position + 
+        /*Edge is pointing to the non boundary halfedge*/
+        e->newPosition = (3.5/8.0)*(e->halfedge()->vertex()->position +
         e->halfedge()->twin()->vertex()->position)   +
-        (e->halfedge()->next()->next()->vertex()->position)/8.0; 
+        (e->halfedge()->next()->next()->vertex()->position)/8.0;
 
       } else {
-        e->newPosition = (3.0/8.0)*(e->halfedge()->vertex()->position + 
+        e->newPosition = (3.0/8.0)*(e->halfedge()->vertex()->position +
         e->halfedge()->twin()->vertex()->position)   +
 
-        (e->halfedge()->next()->next()->vertex()->position + 
-        e->halfedge()->twin()->next()->next()->vertex()->position)/8.0; 
+        (e->halfedge()->next()->next()->vertex()->position +
+        e->halfedge()->twin()->next()->next()->vertex()->position)/8.0;
       }
-     
-      
+
+
     }
 
     // TODO Next, we're going to split every edge in the mesh, in any order.  For future
