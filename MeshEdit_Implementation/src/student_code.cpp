@@ -1,6 +1,7 @@
 #include "student_code.h"
 #include "mutablePriorityQueue.h"
 #include <deque>
+#include <algorithm>
 
 #define PI 3.14159265
 
@@ -502,6 +503,98 @@ namespace CGL
     }
   }
 
+
+  double MeshResampler::set_rho(HalfedgeMesh& mesh, double rho) {
+    printf("Setting rho\n");
+    for (const auto &entry : map) {
+      delete(entry.second);
+    }
+    printf("Deleted entries\n");
+    map.clear();
+    
+
+    printf("Iterating...\n");
+    for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+      Vector3D pos = v->position;
+      if (v == mesh.verticesBegin()) {
+        x_min = pos.x;
+        y_min = pos.y;
+        z_min = pos.z;
+        x_max = pos.x;
+        y_max = pos.y;
+        z_max = pos.z;
+      } else {
+        if (pos.x < x_min) {x_min = pos.x;}
+        if (pos.y < y_min) {y_min = pos.y;}
+        if (pos.z < z_min) {z_min = pos.z;}
+        if (pos.x > x_max) {x_max = pos.x;}
+        if (pos.y < y_max) {y_max = pos.y;}
+        if (pos.z < z_max) {z_max = pos.z;}
+      }
+    }
+    printf("Done iterating\n");
+    double x_diff = x_max - x_min;
+    double y_diff =  y_max - y_min;
+    double z_diff =  z_max - z_min;
+
+    printf("Doing some if cases\n");
+    if (x_diff > y_diff) {
+      mod = x_diff;
+    } else {
+      mod = y_diff;
+    }
+    if (z_diff > mod) {
+      mod = z_diff;
+    }
+    printf("Those are done\n");
+    mod = mod / (2.0* rho);
+    for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+      Vector3D p = v->position;
+      int w = (int) p.x % ((int) mod);
+      int h = (int) p.y % ((int) mod);
+      int t = (int) p.z % ((int) mod);
+      int hash = ((int) mod) * ((int) mod) * w + ((int) mod) * h + t;
+      if (map.find(hash) == map.end()) {
+        std::vector<VertexIter > * vec = new std::vector<VertexIter >();
+        map[hash] = vec;
+      }
+      map[hash]->push_back(v);
+    }
+      return rho;
+  }
+
+  std::vector<VertexIter> MeshResampler::get_neighbors(Vector3D p) {
+    printf("getting neighbors\n");
+    int w = (int) p.x % ((int) mod);
+    int h = (int) p.y % ((int) mod);
+    int t = (int) p.z % ((int) mod);
+    int hash = ((int) mod) * ((int) mod) * w + ((int) mod) * h + t;
+    std::vector<VertexIter>  * vec = new std::vector<VertexIter >();
+    for (int i = -((int) mod)*((int) mod); i<= ((int) mod)*((int) mod); i += ((int) mod)*((int) mod)) {
+      for (int j = -((int) mod); j <= ((int) mod); j += ((int) mod)) {
+        for (int k = -1; k <= 1; k++) {
+          int next_hash = hash + i + j + k;
+          if (map.find(next_hash) != map.end()) {
+            for (VertexIter ver : *map[next_hash]) {
+              vec->push_back(ver);
+              // printf("%4f %4f %4f\n", (ver)->position.x, (ver)->position.y, (ver)->position.z);
+              // printf("%d\n", next_hash);
+            }
+          }
+        }
+      }
+    }
+    printf("done\n");
+    printf("Sorting neighbors\n");
+    std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
+    // std::sort( (*vec).begin( ), (*vec).end( ), []( const VertexIter& lhs, const VertexIter& rhs )
+    // {
+    //   return (lhs->position - v->position).norm() < (rhs->position - v->position).norm();
+    // });
+    printf("DOne\n");
+    return *vec;
+  }
+
   Vector3D circumcenter(Vector3D a, Vector3D b, Vector3D c) {
 
     Vector3D ac = c - a ;
@@ -527,20 +620,24 @@ namespace CGL
   //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho 
     //and computes the vertex which when touched will make ensure no other vertices are in the ball
     //Cannot fail on the inside half edge, as it is a well formed triangle via our seed or algorithm prior.
-  bool pivot_from( HalfedgeIter inside_halfedge, double rho, VertexIter& populate, std::vector<VertexIter> accel_struct) {
-
+  bool pivot_from( HalfedgeIter inside_halfedge, double rho, VertexIter& populate, MeshResampler* meshR) {
+    printf("pivotting from\n");
     Vector3D sigma_i = inside_halfedge->vertex()->position;
     Vector3D sigma_j = inside_halfedge->next()->vertex()->position;
     Vector3D m = 0.5*(sigma_i + sigma_j);
     Vector3D sigma_o = inside_halfedge->next()->next()->vertex()->position;
     Vector3D* c_ijo = new Vector3D();
     circumsphere_center(sigma_i, sigma_j, sigma_o, rho, *c_ijo);
+    printf("Computed some basic info\n");
 
     /*First we must compute all the valid vertices for which the ball can touch
       v, sigma_i, and sigma_j without containing any other points. We must look in
       a 2*rho distance from m */
+
+    printf("About to get neighbors\n");
     std::vector<VertexIter> rho_closest;
-    rho_closest = accel_struct;
+    rho_closest = (*meshR).get_neighbors(m);
+    printf("Done\n");
 
     printf("Size of our acceleration Structure query is %d\n", rho_closest.size());
 
@@ -651,11 +748,11 @@ namespace CGL
 
   bool MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate) {
     HalfedgeIter hIter = h.twin()->twin();
-    std::vector<VertexIter> dummy_accel_struct;
-    for( VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++ ) {
-      dummy_accel_struct.push_back(v);
-    }
-    return pivot_from(hIter, 0.03, populate, dummy_accel_struct);
+    double rho = 0.4;
+
+    set_rho(mesh, rho);
+
+    return pivot_from(hIter, rho, populate, this);
   }
 
 
@@ -914,14 +1011,10 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         }
       }
     }
-
     return false;
-
-
-
   }
 
-  void MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
+  HalfedgeIter MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
     double rho = 0.25;
     //TODO clear everything!
     // for( EdgeIter e = mesh.edgesBegin(); e != mesh.edgesEnd(); e++ ) {
@@ -962,8 +1055,10 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         /*Use voxel accel struct to get the closest points here*/
         while (unused_vertices.size() > 0) {
           candidate_sigma = unused_vertices.front();
+          printf("Candidate suggested\n");
           unused_vertices.pop_front();
-          if (!(candidate_sigma->BPisUsed)) {
+          if ((candidate_sigma->BPisUsed)) {
+            printf("But continued\n");
             continue;
           } else {
             candidate_found = true;
@@ -972,6 +1067,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         }
 
         if (candidate_found) {
+          printf("Candidate_found\n");
           seedFound = computeSeedTriangleGivenPoint(candidate_sigma, dummy_accel_struct, rho, sigma_alpha, sigma_beta);
         }
       }
@@ -990,50 +1086,59 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         e2->BPisBoundary = false;
         e3->BPisActive = true;
         e3->BPisBoundary = false;
+
+        printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
+        printf("returned correctly\n");
       } else {
+        printf("returned poorly\n");
+
         /*We must try another rho or kill the floating vertices and call it done*/
       }
 
-      std::vector<VertexIter> v;
+      return candidate_sigma->halfedge();
 
-        //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
+    //   std::vector<VertexIter> v;
 
-        //TODO not_used(), not_internal
-        // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
-          //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
-          // 4. output triangle(i,  k , j )
+    //     //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
 
-          //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing 
-            //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
-          // 5. join(e(i,j) , k , F)
+    //     //TODO not_used(), not_internal
+    //     // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
+    //       //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
+    //       // 4. output triangle(i,  k , j )
 
-        // 8 . else
+    //       //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing 
+    //         //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
+    //       // 5. join(e(i,j) , k , F)
 
-          // TODO function mark an edge as a fixed boundary 
-          // 9 . mark as boundary(e(i;j))
+    //     // 8 . else
 
-
-    Vector3D i = Vector3D(123, 456 , 789);
-    Vector3D j = Vector3D(666,66,6);
-    Vector3D o = Vector3D(34, 43.24, -3422.0321);
-    Vector3D *c = new Vector3D();
-
-    circumsphere_center( i, j, o, 234556, *c);
-
-    printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
-    printf("Distance from i is : %4f\n", (i-*c).norm());
-    printf("Distance from j is : %4f\n", (j-*c).norm());
-    printf("Distance from o is : %4f\n", (o-*c).norm());
+    //       // TODO function mark an edge as a fixed boundary 
+    //       // 9 . mark as boundary(e(i;j))
 
 
-    circumsphere_center( i, o, j, 234556, *c);
+    // Vector3D i = Vector3D(123, 456 , 789);
+    // Vector3D j = Vector3D(666,66,6);
+    // Vector3D o = Vector3D(34, 43.24, -3422.0321);
+    // Vector3D *c = new Vector3D();
 
-    printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
-    printf("Distance from i is : %4f\n", (i-*c).norm());
-    printf("Distance from j is : %4f\n", (j-*c).norm());
-    printf("Distance from o is : %4f\n", (o-*c).norm());
+    // circumsphere_center( i, j, o, 234556, *c);
+
+    // printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
+    // printf("Distance from i is : %4f\n", (i-*c).norm());
+    // printf("Distance from j is : %4f\n", (j-*c).norm());
+    // printf("Distance from o is : %4f\n", (o-*c).norm());
+
+
+    // circumsphere_center( i, o, j, 234556, *c);
+
+    // printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
+    // printf("Distance from i is : %4f\n", (i-*c).norm());
+    // printf("Distance from j is : %4f\n", (j-*c).norm());
+    // printf("Distance from o is : %4f\n", (o-*c).norm());
 
   }
+
+
 
   void MeshResampler::upsample( HalfedgeMesh& mesh )
   {

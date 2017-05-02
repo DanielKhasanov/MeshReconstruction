@@ -1015,12 +1015,15 @@ namespace CGL {
                       mesh = &( meshNodes.begin()->mesh );
                     }
 
-                    resampler.ball_pivot( *mesh );
+                    HalfedgeIter v = resampler.ball_pivot( *mesh );
+
+                    
 
                     // Since the mesh may have changed, the selected and
                     // hovered features may no longer point to valid elements.
                     selectedFeature.invalidate();
                     hoveredFeature.invalidate();
+                    selectedFeature.element = elementAddress( v );
                   }
 
                   inline void MeshEdit::drawString(float x, float y, string str, size_t size, Color c)
