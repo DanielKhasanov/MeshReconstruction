@@ -1,6 +1,8 @@
 #include "student_code.h"
 #include "mutablePriorityQueue.h"
 
+#define PI 3.14159265
+
 using namespace std;
 
 namespace CGL
@@ -524,39 +526,85 @@ namespace CGL
   //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho 
     //and computes the vertex which when touched will make ensure no other vertices are in the ball
     //Cannot fail on the inside half edge, as it is a well formed triangle via our seed or algorithm prior.
-  void pivot_from( HalfedgeIter inside_halfedge, double rho) {
+  bool pivot_from( HalfedgeIter inside_halfedge, double rho, VertexIter& populate) {
 
 
     Vector3D sigma_i = inside_halfedge->vertex()->position;
-    Vector3D sigma_j = inside_halfedge->next->vertex()->position;
+    Vector3D sigma_j = inside_halfedge->next()->vertex()->position;
     Vector3D m = 0.5*(sigma_i + sigma_j);
-    Vector3D sigma_o = inside_halfedge->next->next->vertex()->position;
-    Vector3D c_ijo = circumsphere_center(sigma_i, sigma_j, sigma_o, rho);
+    Vector3D sigma_o = inside_halfedge->next()->next()->vertex()->position;
+    Vector3D* c_ijo = new Vector3D();
+    circumsphere_center(sigma_i, sigma_j, sigma_o, rho, *c_ijo);
 
-    std::vector<Vertex*> rho_closest;
+    /*First we must compute all the valid vertices for which the ball can touch
+      v, sigma_i, and sigma_j without containing any other points. We must look in
+      a 2*rho distance from m */
+    std::vector<VertexIter> rho_closest;
     //rho_closest = accel_struct->f(m , 2*rho);
-    for (Vertex &v : rho_closest) {
-      if (v.position != sigma_o) {
-        Vector3D cx = new Vector3D();
-        if (circumsphere_center(sigma_i, sigma_j, v.position, rho, *cx)) {
+    std::vector<Vector3D*> candidate_centers;
+    std::vector<VertexIter*> candidate_vertices;
+    for (VertexIter &v : rho_closest) {
+      if (&v->position != &sigma_o) { //Cannot use the trivial third point in our triangle
+        Vector3D *cx = new Vector3D();
+        if (circumsphere_center(sigma_i, sigma_j, v->position, rho, *cx)) {
 
-          double num_touching = 0;
-          for (Vertex &v : rho_closest) {
-            int dist_from_center = (v.position - cx).norm();
+          int num_touching = 0;
+          double dist_from_center;
+          for (VertexIter other : rho_closest) {
+            dist_from_center = (other->position - *cx).norm();
             if (dist_from_center < rho) {
+              num_touching = 30; //flag that too we cannot use this vertex, as another vertex is inside the ball;
               break;
             } else if (dist_from_center == rho) {
-              num_touching += 1;
-            }
+              num_touching += 1; //Expected exactly 3 at the end of loop
+            } 
           }
 
-        } else {
-
-        ;
-
+          if (num_touching == 3) { //Ball is touching three points exactly, add v to candidate centers
+            candidate_centers.push_back(cx);
+            candidate_vertices.push_back(&v);
+          } 
+        }
       }
     }
 
+    /*At this point we have accumulated our candidate vertices to add and
+      the center of the ball when it rolls on them in candidate_centers 
+      and candidate_vertices Now we compute the closest center along the 
+      3D circle gamma with radius rho centered at m*/
+
+    if (candidate_centers.size() == 0) {
+      return false;
+    }
+
+    double best_t_sofar = 3*PI;
+    VertexIter* best_vertex_sofar;
+    int i = 0;
+    Vector3D m_cijo = *c_ijo - m;
+    for (Vector3D* candidate_center : candidate_centers) {
+      Vector3D m_candidate = *candidate_center - m;
+      double norm = (m_cijo.norm()*m_candidate.norm());
+      double cos_theta = dot(m_cijo, m_candidate)/norm;
+      double sin_theta = cross(m_cijo, m_candidate).norm()/norm;
+
+      double candidate_t;
+      if (sin_theta > 0.0) { /*top half*/
+        candidate_t = acos(cos_theta);
+      } else if (cos_theta > 0.0) { /*fourth quadrant*/
+        candidate_t = 2*PI + asin(sin_theta);
+      } else { /*Third quadrant*/
+        candidate_t = PI - asin(sin_theta);
+      }
+
+      if (candidate_t < best_t_sofar) {
+        best_t_sofar = candidate_t;
+        best_vertex_sofar = candidate_vertices[i];
+      }
+      i++;
+    }
+
+    populate = *best_vertex_sofar;
+    return true;
 
   }
 
@@ -588,12 +636,13 @@ namespace CGL
     Vector3D i = Vector3D(123, 456 , 789);
     Vector3D j = Vector3D(666,66,6);
     Vector3D o = Vector3D(34, 43.24, -3422.0321);
-    Vector3D c = circumsphere_center( i, j, o, 234556);
+    Vector3D *c = new Vector3D();
+    circumsphere_center( i, j, o, 234556, *c);
 
-    printf("Circumsphere center is : %4f %4f %4f\n", c.x, c.y, c.z);
-    printf("Distance from i is : %4f\n", (i-c).norm());
-    printf("Distance from j is : %4f\n", (j-c).norm());
-    printf("Distance from o is : %4f\n", (o-c).norm());
+    printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
+    printf("Distance from i is : %4f\n", (i-*c).norm());
+    printf("Distance from j is : %4f\n", (j-*c).norm());
+    printf("Distance from o is : %4f\n", (o-*c).norm());
 
   }
 

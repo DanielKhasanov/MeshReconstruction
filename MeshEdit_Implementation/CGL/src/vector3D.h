@@ -49,8 +49,20 @@ class Vector3D {
     return ( &x )[ index ];
   }
 
+    // equality == assignment
+  inline bool operator==( const Vector3D& v ) const {
+    return (x == v.x && y == v.y && z == v.z);
+  }
+
+
+  // nonequality != assignment
+  inline bool operator!=( const Vector3D v ) const {
+    return (x != v.x || y != v.y || z != v.z);
+  }
+
   // negation
   inline Vector3D operator-( void ) const {
+    bool y = (*this) == Vector3D();
     return Vector3D( -x, -y, -z );
   }
 
