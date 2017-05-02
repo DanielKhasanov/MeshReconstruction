@@ -84,7 +84,7 @@ namespace CGL {
       // First, we do some basic sanity checks on the input.
       for( PolygonListCIter p = polygons.begin(); p != polygons.end(); p++ )
       {
-        if( p->size() < 3 )
+        if( p->size() < 3 && p->size() != 1)
         {
           // Refuse to build the mesh if any of the polygons have fewer than three vertices.
           // (Note that if we omit this check the code will still construct something fairly

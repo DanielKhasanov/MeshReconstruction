@@ -427,9 +427,11 @@ namespace CGL
          HalfedgeCIter halfedge( void ) const { return _halfedge; }
 
          Vector3D position; ///< location in 3-space
+         Vector3D norm; ///< normal in 3space
 
          Vector3D newPosition; ///< For Loop subdivision, this will be the updated position of the vertex
          bool isNew; ///< For Loop subdivision, this flag should be true if and only if this vertex is a new vertex created by subdivision (i.e., if it corresponds to a vertex of the original mesh)
+         bool BPisUsed;
 
          /**
           * computes the average of the neighboring vertex positions and stores it in Vertex::centroid
@@ -522,6 +524,8 @@ namespace CGL
 
          Vector3D newPosition; ///< For Loop subdivision, this will be the position for the edge midpoint
          bool isNew; ///< For Loop subdivision, this flag should be true if and only if this edge is a new edge created by subdivision (i.e., if it cuts across a triangle in the original mesh)
+         bool BPisActive;
+         bool BPisBoundary;
 
          EdgeRecord record;
 
@@ -628,6 +632,8 @@ namespace CGL
           */
            EdgeIter       flipEdge( EdgeIter e ); ///< flip an edge, returning a pointer to the flipped edge
          VertexIter      splitEdge( EdgeIter e ); ///< split an edge, returning a pointer to the inserted midpoint vertex; the halfedge of this vertex should refer to one of the edges in the original mesh
+
+         HalfedgeIter     createSeedTriangle(VertexIter sigma, VertexIter alpha, VertexIter beta);
 
 
          void check_for(HalfedgeIter h) {

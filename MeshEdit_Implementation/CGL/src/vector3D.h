@@ -56,7 +56,7 @@ class Vector3D {
 
 
   // nonequality != assignment
-  inline bool operator!=( const Vector3D v ) const {
+  inline bool operator!=( const Vector3D& v ) const {
     return (x != v.x || y != v.y || z != v.z);
   }
 
