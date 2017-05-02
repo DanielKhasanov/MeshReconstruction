@@ -519,7 +519,7 @@ namespace CGL
       return false;
     }
     double x_mag = sqrt(discriminant);
-    center = c + cross(o - i, i - j).unit()*x_mag;
+    center = c - cross(o - i, i - j).unit()*x_mag;
     return true;
   }
 
@@ -548,8 +548,12 @@ namespace CGL
     std::vector<Vector3D*> candidate_centers;
     std::vector<VertexIter> candidate_vertices;
     for (VertexIter &v : rho_closest) {
-      if (&v->position != &sigma_o) { //Cannot use the trivial third point in our triangle
+      if ( (v->position.x != sigma_o.x || v->position.y != sigma_o.y || v->position.z != sigma_o.z) &&
+       (v->position.x != sigma_i.x || v->position.y != sigma_i.y || v->position.z != sigma_i.z ) &&
+        (v->position.x != sigma_j.x || v->position.y != sigma_j.y || v->position.z != sigma_j.z)) { //Cannot use the trivial third point in our triangle nor the existing i and j
+
         Vector3D *cx = new Vector3D();
+
         if (circumsphere_center(sigma_i, sigma_j, v->position, rho, *cx)) {
           printf("\n");
           printf("Sanity check that at least three points are touching here\n");
@@ -560,13 +564,9 @@ namespace CGL
           printf("candidate vertex: %4f %4f %4f -> %4f\n", v->position.x, v->position.y, v->position.z, (v->position - *cx).norm());
 
           printf("\n");
-
-
           bool valid_flag  = true;
           double dist_from_center;
           for (VertexIter other : rho_closest) {
-
-            
 
             if (other->position.x == sigma_i.x && other->position.y == sigma_i.y && other->position.z == sigma_i.z ) {
               continue;
@@ -575,20 +575,24 @@ namespace CGL
             } else if (other->position.x == v->position.x && other->position.y == v->position.y && other->position.z == v->position.z ) {
                continue;
             }
-
             dist_from_center = (other->position - *cx).norm();
-
             if (dist_from_center < rho - 0.00001) {
-
               valid_flag = false; //flag that too we cannot use this vertex, as another vertex is inside the ball;
-              
               break;
-            } 
+            }
           }
 
           if (valid_flag) { //Ball is touching three points exactly, add v to candidate centers
             printf("We made a candidate vertex\n");
             candidate_centers.push_back(cx);
+            printf("Candidate center placed at %4f %4f %4f \n", cx->x, cx->y, cx->z);
+
+            circumsphere_center(sigma_i, sigma_j, v->position, rho, *cx);
+
+            printf("sigma_i at: %4f %4f %4f\n", sigma_i.x, sigma_i.y, sigma_i.z);
+            printf("sigma_j at: %4f %4f %4f\n", sigma_j.x, sigma_j.y, sigma_j.z);
+            printf("candidate vertex at: %4f %4f %4f\n", v->position.x, v->position.y, v->position.z);
+            printf("Candidate center sanity check at %4f %4f %4f \n", cx->x, cx->y, cx->z);
             candidate_vertices.push_back(v);
           } 
         }
@@ -601,7 +605,6 @@ namespace CGL
       3D circle gamma with radius rho centered at m*/
 
     if (candidate_centers.size() == 0) {
-      printf("FAILED?\n");
       return false;
     }
 
@@ -611,6 +614,7 @@ namespace CGL
     int i = 0;
     Vector3D m_cijo = *c_ijo - m;
     for (Vector3D* candidate_center : candidate_centers) {
+      printf("Candidate center reached at %4f %4f %4f \n", candidate_center->x, candidate_center->y, candidate_center->z);
       Vector3D m_candidate = *candidate_center - m;
       double norm = (m_cijo.norm()*m_candidate.norm());
       double cos_theta = dot(m_cijo, m_candidate)/norm;
@@ -648,17 +652,13 @@ namespace CGL
 
   }
 
-  VertexIter MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh) {
+  bool MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate) {
     HalfedgeIter hIter = h.twin()->twin();
-    VertexIter retV;
     std::vector<VertexIter> dummy_accel_struct;
     for( VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++ ) {
       dummy_accel_struct.push_back(v);
     }
-    printf("Trying\n");
-    pivot_from(hIter, 1.0, retV, dummy_accel_struct);
-    printf("Done\n");
-    return retV;
+    return pivot_from(hIter, 0.03, populate, dummy_accel_struct);
   }
 
   void MeshResampler::ball_pivot( HalfedgeMesh& mesh) {

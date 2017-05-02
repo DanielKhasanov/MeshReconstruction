@@ -1562,13 +1562,15 @@ namespace CGL {
                       }
 
 
-                      v = resampler.calculateBallPointDemo(*h, *mesh);
-                      // Since the mesh may have changed, the selected and
-                      // hovered features may no longer point to valid elements.
-                      selectedFeature.invalidate();
-                      hoveredFeature.invalidate();
+                      if (resampler.calculateBallPointDemo(*h, *mesh, v) ) {
+                        // Since the mesh may have changed, the selected and
+                        // hovered features may no longer point to valid elements.
+                        selectedFeature.invalidate();
+                        hoveredFeature.invalidate();
 
-                      selectedFeature.element = elementAddress( v );
+                        selectedFeature.element = elementAddress( v );
+                      };
+                      
                     }
 
                     void MeshEdit :: splitSelectedEdge( void )

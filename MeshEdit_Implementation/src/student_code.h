@@ -18,7 +18,7 @@ namespace CGL {
 
     void upsample(HalfedgeMesh& mesh);
     void ball_pivot(HalfedgeMesh& mesh);
-    VertexIter calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh);
+    bool calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate);
   };
 }
 
