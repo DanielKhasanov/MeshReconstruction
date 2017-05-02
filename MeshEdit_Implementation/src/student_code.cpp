@@ -749,9 +749,7 @@ namespace CGL
   bool MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate) {
     HalfedgeIter hIter = h.twin()->twin();
     double rho = 0.4;
-
     set_rho(mesh, rho);
-
     return pivot_from(hIter, rho, populate, this);
   }
 
@@ -1035,8 +1033,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     //TODO Iterating from smallest rho to largest
       std::vector<VertexIter> dummy_accel_struct;
       std::deque<VertexIter> unused_vertices;
+      std::deque<EdgeIter> active_edges;
       std::deque<EdgeIter> front_edges;
-      std::vector<VertexIter> active_edges;
 
       //TODO create a queue of free vertices
       for( VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++ ) {
@@ -1077,6 +1075,9 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         EdgeIter e1 = candidate_sigma->halfedge()->edge();
         EdgeIter e2 = sigma_alpha->halfedge()->edge();
         EdgeIter e3 = sigma_beta->halfedge()->edge();
+        active_edges.push_back(e1);
+        active_edges.push_back(e2);
+        active_edges.push_back(e3);
         front_edges.push_back(e1);
         front_edges.push_back(e2);
         front_edges.push_back(e3);
@@ -1090,51 +1091,75 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
         printf("returned correctly\n");
       } else {
-        printf("returned poorly\n");
-
         /*We must try another rho or kill the floating vertices and call it done*/
       }
 
-      return candidate_sigma->halfedge();
+      //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
+      bool active_edge_found = false;
+      EdgeIter candidate_active_edge;
 
-    //   std::vector<VertexIter> v;
+      /*Use voxel accel struct to get the closest points here*/
+      while (active_edges.size() > 0) {
+        candidate_active_edge = active_edges.front();
+        printf("Active Edge Candidate suggested\n");
+        active_edges.pop_front();
+        if ((candidate_active_edge->BPisActive)) {
+          candidate_found = true;
+          break;
+        } else {
+          printf("But continued\n");
+          continue;
+        }
+      }
 
-    //     //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
+      if (active_edge_found) {
+          printf("Active Edge Candidate_found\n");
+      
 
-    //     //TODO not_used(), not_internal
-    //     // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
-    //       //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
-    //       // 4. output triangle(i,  k , j )
+        //TODO not_used(), not_internal
+        // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
+          VertexIter k;
+          if (pivot_from( candidate_active_edge, rho, k, this)) {
+            if (!(k.BPisUsed) || (k->halfedge()->edge()->BPisActive || k->halfedge()->edge()->BPisBoundary)) {
 
-    //       //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing 
-    //         //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
-    //       // 5. join(e(i,j) , k , F)
+            }
 
-    //     // 8 . else
-
-    //       // TODO function mark an edge as a fixed boundary 
-    //       // 9 . mark as boundary(e(i;j))
-
-
-    // Vector3D i = Vector3D(123, 456 , 789);
-    // Vector3D j = Vector3D(666,66,6);
-    // Vector3D o = Vector3D(34, 43.24, -3422.0321);
-    // Vector3D *c = new Vector3D();
-
-    // circumsphere_center( i, j, o, 234556, *c);
-
-    // printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
-    // printf("Distance from i is : %4f\n", (i-*c).norm());
-    // printf("Distance from j is : %4f\n", (j-*c).norm());
-    // printf("Distance from o is : %4f\n", (o-*c).norm());
+          }
 
 
-    // circumsphere_center( i, o, j, 234556, *c);
+          //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
+          // 4. output triangle(i,  k , j )
 
-    // printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
-    // printf("Distance from i is : %4f\n", (i-*c).norm());
-    // printf("Distance from j is : %4f\n", (j-*c).norm());
-    // printf("Distance from o is : %4f\n", (o-*c).norm());
+          //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing 
+            //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
+          // 5. join(e(i,j) , k , F)
+
+        // 8 . else
+
+          // TODO function mark an edge as a fixed boundary 
+          // 9 . mark as boundary(e(i;j))
+      }
+
+    Vector3D i = Vector3D(123, 456 , 789);
+    Vector3D j = Vector3D(666,66,6);
+    Vector3D o = Vector3D(34, 43.24, -3422.0321);
+    Vector3D *c = new Vector3D();
+
+    circumsphere_center( i, j, o, 234556, *c);
+
+    printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
+    printf("Distance from i is : %4f\n", (i-*c).norm());
+    printf("Distance from j is : %4f\n", (j-*c).norm());
+    printf("Distance from o is : %4f\n", (o-*c).norm());
+
+
+    circumsphere_center( i, o, j, 234556, *c);
+
+    printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
+    printf("Distance from i is : %4f\n", (i-*c).norm());
+    printf("Distance from j is : %4f\n", (j-*c).norm());
+    printf("Distance from o is : %4f\n", (o-*c).norm());
+    return candidate_sigma->halfedge();
 
   }
 
