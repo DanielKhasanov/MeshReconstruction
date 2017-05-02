@@ -31,6 +31,7 @@ namespace CGL {
     double y_max;
     double z_max;
     double mod;
+    double rho;
   };
 }
 
