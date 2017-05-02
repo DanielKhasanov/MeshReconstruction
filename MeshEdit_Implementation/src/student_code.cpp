@@ -529,8 +529,8 @@ namespace CGL
         if (pos.y < y_min) {y_min = pos.y;}
         if (pos.z < z_min) {z_min = pos.z;}
         if (pos.x > x_max) {x_max = pos.x;}
-        if (pos.y < y_max) {y_max = pos.y;}
-        if (pos.z < z_max) {z_max = pos.z;}
+        if (pos.y > y_max) {y_max = pos.y;}
+        if (pos.z > z_max) {z_max = pos.z;}
       }
     }
     // printf("Done iterating\n");
@@ -541,7 +541,7 @@ namespace CGL
     // printf("Doing some if cases\n");
     if (x_diff > y_diff) {
       mod = x_diff;
-      
+
     } else {
       mod = y_diff;
     }
@@ -552,7 +552,7 @@ namespace CGL
 
     rho = newRho;
     // printf("Rho is now %4f\n", rho);
-    
+
     int num_bins = max((int) (mod/(2.0*rho)), 1) ;
     // printf("The number of bins is %d\n", num_bins);
 
@@ -1108,8 +1108,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     }
 
 
-    
-    
+
+
     return false;
   }
 
@@ -1295,7 +1295,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
         if (active_edge_found) {
             printf("Active Edge Candidate_found\n");
-      
+
           //TODO not_used(), not_internal
           // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
             VertexIter k;
@@ -1307,7 +1307,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                 // 4. output triangle(i,  k , j )
                 mesh.createFrontTriangle(candidate_active_edge->halfedge(), k);
 
-                //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing 
+                //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing
                   //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
                 // 5. join(e(i,j) , k , F)
 
@@ -1319,10 +1319,10 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                 printf("Marked the edge as boundary due to ball making it around to other side\n");
                 candidate_active_edge->BPisBoundary = true;
             }
-            
+
           // 8 . else
 
-            // TODO function mark an edge as a fixed boundary 
+            // TODO function mark an edge as a fixed boundary
             // 9 . mark as boundary(e(i;j))
         }
       }

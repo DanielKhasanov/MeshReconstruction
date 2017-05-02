@@ -245,6 +245,7 @@ class MeshEdit : public Renderer {
 
   bool shadingMode;
   bool smoothShading;
+  bool verticesOnly;
   float brownMap[2*XMAX*YMAX*ZMAX];
 
   // Specify the location of eye and what it is pointing at.

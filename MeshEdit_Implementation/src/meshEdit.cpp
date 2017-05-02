@@ -1,7 +1,7 @@
 #include "meshEdit.h"
 #include "shaderUtils.h"
 #include "GL/glew.h"
-#include <stdlib.h> 
+#include <stdlib.h>
 
 #define PI 3.14159265
 #define XMAX 100
@@ -15,6 +15,7 @@ namespace CGL {
   {
     smoothShading = false;
     shadingMode = false;
+    verticesOnly = false;
     shaderProgID = loadShaders("shader/vert", "shader/frag");
     if(!shaderProgID)
       shaderProgID = loadShaders("../shader/vert", "../shader/frag");
@@ -191,12 +192,12 @@ namespace CGL {
       //       for (int j = 0; j < YMAX; j++) {
       //           for (int k = 0; k < ZMAX; k++) {
       //               float angle = ( t_rand/1000.0);
-                                                        
+
       //               brownMap[2*(k*YMAX*XMAX + j*XMAX + i)] = cos(angle);
       //               brownMap[2*(k*YMAX*XMAX + j*XMAX + i) + 1] =  sin(angle);
       //           }
       //       }
-      //   } 
+      //   }
       glActiveTexture (GL_TEXTURE0);
       glUniform1i (glGetUniformLocation (shaderProgID, "myTexture"), 0);
 
@@ -296,6 +297,9 @@ namespace CGL {
           case 'Q':
           smoothShading = !smoothShading;
           break;
+          case 'p':
+          case 'P':
+          verticesOnly = !verticesOnly;
           default:
           break;
         }
@@ -431,12 +435,12 @@ namespace CGL {
             Node & node = nodes[i];
 
             Instance * instance = node.instance;
-            
+
             if(!instance) {
               printf("NOT INSTANCE?");
               continue;
             }
-            
+
 
             // FIXME : Transform Matrix?
             switch(instance -> type)
@@ -1017,7 +1021,7 @@ namespace CGL {
 
                     HalfedgeIter v = resampler.ball_pivot( *mesh );
 
-                    
+
 
                     // Since the mesh may have changed, the selected and
                     // hovered features may no longer point to valid elements.
@@ -1242,6 +1246,31 @@ namespace CGL {
 
                   void MeshEdit::renderMesh( HalfedgeMesh& mesh )
                   {
+                    if (verticesOnly) {
+                      glUseProgram(0);
+
+                      Vertex* v;
+
+                      glDisable(GL_DEPTH_TEST);
+
+
+
+                      for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+                        Vertex ver = *v;
+                        DrawStyle* style = &defaultStyle;
+                        style = &selectStyle;
+                        setColor( style->vertexColor   );
+                        glPointSize( style->vertexRadius );
+
+                        glBegin( GL_POINTS );
+                        Vector3D p = ver.position;
+                        glVertex3d( p.x, p.y, p.z );
+                        glEnd();
+                      }
+
+                      glEnable( GL_DEPTH_TEST );
+                      return;
+                    }
                     if(shadingMode)
                     glUseProgram(shaderProgID);
                     else
@@ -1573,7 +1602,7 @@ namespace CGL {
 
                         selectedFeature.element = elementAddress( v );
                       };
-                      
+
                     }
 
                     void MeshEdit :: splitSelectedEdge( void )
