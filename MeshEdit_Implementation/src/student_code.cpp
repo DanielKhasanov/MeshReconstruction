@@ -1045,13 +1045,11 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                         beta,
                         e2,
                         f);
-
       insideFront->twin()->setNeighbors( i2,
                                         insideFront,
                                         alpha,
                                         insideFront->edge(),
                                         f);
-
       a_pred->setNeighbors( o1,
                             a_pred->twin(),
                             a_pred->vertex(),
@@ -1059,34 +1057,59 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                             a_pred->face());
 
       return true;
+    } else {
+      bool k_to_a = false;
+      HalfedgeIter k_a;
+      bool b_to_k = false;
+      HalfedgeIter b_k;
+
+      HalfedgeIter h = alpha->halfedge();
+      do {
+          if (h->twin()->vertex() == k) {
+            printf("Glueing a to k\n");
+            k_a = h->twin();
+            k_to_a = true;
+            break;
+          }
+          h = h->twin()->next();} while( h != alpha->halfedge() );
+
+      h = beta->halfedge();
+      do {
+          if (h->twin()->vertex() == k) {
+            printf("Glueing b to k\n");
+            b_k = h;
+            b_to_k = true;
+            break;
+          }
+          h = h->twin()->next();} while( h != beta->halfedge() );
+
+      if ((k_to_a) && (b_to_k)) {
+        /*Just need to assign a face*/
+        FaceIter f = this->newFace();
+        f->halfedge() = insideFront->twin();
+        k_a->setNeighbors( insideFront->twin(),
+                            k_a->twin(),
+                            k,
+                            k_a->edge(),
+                            f);
+        insideFront->twin()->setNeighbors( b_k,
+                            insideFront,
+                            alpha,
+                            insideFront->edge(),
+                            f);
+        b_k->twin()->setNeighbors( k_a,
+                            b_k->twin(),
+                            beta,
+                            b_k->edge(),
+                            f);
+        return true;
+      }
+      return false;
     }
 
 
     
-    bool k_to_a = false;
-    bool b_to_k = false;
-
-    HalfedgeIter h = alpha->halfedge();
-    do {
-        if (h->twin()->vertex() == k) {
-          printf("Glueing a to k\n");
-          k_to_a = true;
-          break;
-        }
-        h = h->twin()->next();} while( h != alpha->halfedge() );
-
-    h = beta->halfedge();
-    do {
-        if (h->twin()->vertex() == k) {
-          printf("Glueing b to k\n");
-          b_to_k = true;
-          break;
-        }
-        h = h->twin()->next();} while( h != beta->halfedge() );
-
-    if (!(k_to_a)) {
-
-    }
+    
     return false;
   }
 
