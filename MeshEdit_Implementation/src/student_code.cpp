@@ -526,10 +526,11 @@ namespace CGL
   //TODO pivot() function that takes two vertices, a mesh acceleration structure, and a radius rho 
     //and computes the vertex which when touched will make ensure no other vertices are in the ball
     //Cannot fail on the inside half edge, as it is a well formed triangle via our seed or algorithm prior.
-  bool pivot_from( HalfedgeIter inside_halfedge, double rho, VertexIter& populate) {
-
+  bool pivot_from( HalfedgeIter inside_halfedge, double rho, VertexIter& populate, std::vector<VertexIter> accel_struct) {
 
     Vector3D sigma_i = inside_halfedge->vertex()->position;
+
+
     Vector3D sigma_j = inside_halfedge->next()->vertex()->position;
     Vector3D m = 0.5*(sigma_i + sigma_j);
     Vector3D sigma_o = inside_halfedge->next()->next()->vertex()->position;
@@ -540,29 +541,55 @@ namespace CGL
       v, sigma_i, and sigma_j without containing any other points. We must look in
       a 2*rho distance from m */
     std::vector<VertexIter> rho_closest;
-    //rho_closest = accel_struct->f(m , 2*rho);
+    rho_closest = accel_struct;
+
+    printf("Size of our acceleration Structure query is %d\n", rho_closest.size());
+
     std::vector<Vector3D*> candidate_centers;
-    std::vector<VertexIter*> candidate_vertices;
+    std::vector<VertexIter> candidate_vertices;
     for (VertexIter &v : rho_closest) {
       if (&v->position != &sigma_o) { //Cannot use the trivial third point in our triangle
         Vector3D *cx = new Vector3D();
         if (circumsphere_center(sigma_i, sigma_j, v->position, rho, *cx)) {
+          printf("\n");
+          printf("Sanity check that at least three points are touching here\n");
+          printf("rho: %4f\n", rho);
+          printf("center sphere: %4f %4f %4f\n", cx->x, cx->y, cx->z);
+          printf("sigma_i: %4f %4f %4f -> %4f\n", sigma_i.x, sigma_i.y, sigma_i.z, (sigma_i - *cx).norm() );
+          printf("sigma_j: %4f %4f %4f -> %4f\n", sigma_j.x, sigma_j.y, sigma_j.z, (sigma_j - *cx).norm());
+          printf("candidate vertex: %4f %4f %4f -> %4f\n", v->position.x, v->position.y, v->position.z, (v->position - *cx).norm());
 
-          int num_touching = 0;
+          printf("\n");
+
+
+          bool valid_flag  = true;
           double dist_from_center;
           for (VertexIter other : rho_closest) {
+
+            
+
+            if (other->position.x == sigma_i.x && other->position.y == sigma_i.y && other->position.z == sigma_i.z ) {
+              continue;
+            } else if (other->position.x == sigma_j.x && other->position.y == sigma_j.y && other->position.z == sigma_j.z ) {
+              continue;
+            } else if (other->position.x == v->position.x && other->position.y == v->position.y && other->position.z == v->position.z ) {
+               continue;
+            }
+
             dist_from_center = (other->position - *cx).norm();
-            if (dist_from_center < rho) {
-              num_touching = 30; //flag that too we cannot use this vertex, as another vertex is inside the ball;
+
+            if (dist_from_center < rho - 0.00001) {
+
+              valid_flag = false; //flag that too we cannot use this vertex, as another vertex is inside the ball;
+              
               break;
-            } else if (dist_from_center == rho) {
-              num_touching += 1; //Expected exactly 3 at the end of loop
             } 
           }
 
-          if (num_touching == 3) { //Ball is touching three points exactly, add v to candidate centers
+          if (valid_flag) { //Ball is touching three points exactly, add v to candidate centers
+            printf("We made a candidate vertex\n");
             candidate_centers.push_back(cx);
-            candidate_vertices.push_back(&v);
+            candidate_vertices.push_back(v);
           } 
         }
       }
@@ -574,11 +601,13 @@ namespace CGL
       3D circle gamma with radius rho centered at m*/
 
     if (candidate_centers.size() == 0) {
+      printf("FAILED?\n");
       return false;
     }
 
+    printf("Starting here to find segfault\n");
     double best_t_sofar = 3*PI;
-    VertexIter* best_vertex_sofar;
+    VertexIter best_vertex_sofar;
     int i = 0;
     Vector3D m_cijo = *c_ijo - m;
     for (Vector3D* candidate_center : candidate_centers) {
@@ -588,6 +617,8 @@ namespace CGL
       double sin_theta = cross(m_cijo, m_candidate).norm()/norm;
 
       double candidate_t;
+
+      printf("Computing distances...\n");
       if (sin_theta > 0.0) { /*top half*/
         candidate_t = acos(cos_theta);
       } else if (cos_theta > 0.0) { /*fourth quadrant*/
@@ -595,17 +626,39 @@ namespace CGL
       } else { /*Third quadrant*/
         candidate_t = PI - asin(sin_theta);
       }
+      printf("Check\n");
 
+
+      printf("Trying to match best_t with best_vertex_sofar\n");
+      printf("3*PI is %4f and the candidate_t is %4f\n", 3*PI, candidate_t);
       if (candidate_t < best_t_sofar) {
+
         best_t_sofar = candidate_t;
         best_vertex_sofar = candidate_vertices[i];
+        printf("We did it, populating with the vertex at %4f %4f %4f\n", best_vertex_sofar->position.x, best_vertex_sofar->position.y, best_vertex_sofar->position.z);
       }
+      printf("Check\n");
       i++;
     }
 
-    populate = *best_vertex_sofar;
+    printf("Return okay..\n");
+    populate = best_vertex_sofar;
+    printf("check\n");
     return true;
 
+  }
+
+  VertexIter MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh) {
+    HalfedgeIter hIter = h.twin()->twin();
+    VertexIter retV;
+    std::vector<VertexIter> dummy_accel_struct;
+    for( VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++ ) {
+      dummy_accel_struct.push_back(v);
+    }
+    printf("Trying\n");
+    pivot_from(hIter, 1.0, retV, dummy_accel_struct);
+    printf("Done\n");
+    return retV;
   }
 
   void MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
@@ -637,6 +690,7 @@ namespace CGL
     Vector3D j = Vector3D(666,66,6);
     Vector3D o = Vector3D(34, 43.24, -3422.0321);
     Vector3D *c = new Vector3D();
+
     circumsphere_center( i, j, o, 234556, *c);
 
     printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);

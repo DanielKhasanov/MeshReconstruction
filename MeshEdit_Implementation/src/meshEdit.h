@@ -365,6 +365,7 @@ class MeshEdit : public Renderer {
   void mesh_up_sample();
 
   void ballPivotSelectedMesh();
+  void ballPivotPointFromSelectedEdge();
 
   // If a halfedge is selected, advances to the next or twin halfedge.
   void selectNextHalfedge( void );

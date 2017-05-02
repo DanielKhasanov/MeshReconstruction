@@ -62,7 +62,7 @@ class Vector3D {
 
   // negation
   inline Vector3D operator-( void ) const {
-    bool y = (*this) == Vector3D();
+
     return Vector3D( -x, -y, -z );
   }
 

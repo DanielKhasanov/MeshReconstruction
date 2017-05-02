@@ -284,6 +284,10 @@ namespace CGL {
           case 'X':
           ballPivotSelectedMesh();
           break;
+          case 'c':
+          case 'C':
+          ballPivotPointFromSelectedEdge();
+          break;
           case 'w':
           case 'W':
           shadingMode = !shadingMode;
@@ -1536,6 +1540,35 @@ namespace CGL {
                       // hovered features may no longer point to valid elements.
                       selectedFeature.invalidate();
                       hoveredFeature.invalidate();
+                    }
+
+                    void MeshEdit :: ballPivotPointFromSelectedEdge( void )
+                    {
+                      Halfedge* h = selectedFeature.element->getHalfedge();
+                      if( h == NULL ) { cerr << "Must select an edge." << endl; return; }
+                      VertexIter v;
+
+                      HalfedgeMesh* mesh;
+
+                      // If an element is selected, resample the mesh containing that
+                      // element; otherwise, resample the first mesh in the scene.
+                      if( selectedFeature.isValid() )
+                      {
+                        mesh = &( selectedFeature.node->mesh );
+                      }
+                      else
+                      {
+                        mesh = &( meshNodes.begin()->mesh );
+                      }
+
+
+                      v = resampler.calculateBallPointDemo(*h, *mesh);
+                      // Since the mesh may have changed, the selected and
+                      // hovered features may no longer point to valid elements.
+                      selectedFeature.invalidate();
+                      hoveredFeature.invalidate();
+
+                      selectedFeature.element = elementAddress( v );
                     }
 
                     void MeshEdit :: splitSelectedEdge( void )
