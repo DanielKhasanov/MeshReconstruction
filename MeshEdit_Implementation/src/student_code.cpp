@@ -794,30 +794,30 @@ namespace CGL
     Vector3D sigma_o = inside_halfedge->next()->next()->vertex()->position;
     Vector3D c_ijo;
 
-    printf("SURELY THIS WONT FAIL\n");
+    // printf("SURELY THIS WONT FAIL\n");
     if (!circumsphere_center(sigma_i, sigma_j, sigma_o, rho, c_ijo)) {
       printf("BUT LO AND BEHOLD\n");
     }
 
-    printf("cijo is the vector %4f %4f %4f\n", (c_ijo).x, (c_ijo).y, (c_ijo).z);
-    printf("m is the vector %4f %4f %4f\n", m.x, m.y, m.z);
+    // printf("cijo is the vector %4f %4f %4f\n", (c_ijo).x, (c_ijo).y, (c_ijo).z);
+    // printf("m is the vector %4f %4f %4f\n", m.x, m.y, m.z);
     Vector3D m_cijo = c_ijo - m;
-    printf("m_cijo is the vector %4f %4f %4f\n", m_cijo.x, m_cijo.y,m_cijo.z);
+    // printf("m_cijo is the vector %4f %4f %4f\n", m_cijo.x, m_cijo.y,m_cijo.z);
 
-    printf("Computed some basic info\n");
+    // printf("Computed some basic info\n");
 
     /*First we must compute all the valid vertices for which the ball can touch
       v, sigma_i, and sigma_j without containing any other points. We must look in
       a 2*rho distance from m */
 
-    printf("About to get neighbors\n");
+    // printf("About to get neighbors\n");
     std::vector<VertexIter> rho_closest;
     rho_closest = (*meshR).get_neighbors(m);
-    printf("Done\n");
+    // printf("Done\n");
 
     printf("Size of our acceleration Structure query is %d\n", rho_closest.size());
 
-    std::vector<Vector3D*> candidate_centers;
+    std::vector<Vector3D> candidate_centers;
     std::vector<VertexIter> candidate_vertices;
     for (VertexIter &v : rho_closest) {
       // printf("roll call: %4f %4f %4f\n", v->position.x, v->position.y, v->position.z);
@@ -825,9 +825,21 @@ namespace CGL
        (v->position.x != sigma_i.x || v->position.y != sigma_i.y || v->position.z != sigma_i.z ) &&
         (v->position.x != sigma_j.x || v->position.y != sigma_j.y || v->position.z != sigma_j.z)) { //Cannot use the trivial third point in our triangle nor the existing i and j
 
-        Vector3D *cx = new Vector3D();
+        Vector3D cx;
 
-        if (circumsphere_center(sigma_i, sigma_j, v->position, rho, *cx)) {
+        // if (dot(normal_orientation, ball_center - ((sigma->position + sigma_alpha->position + sigma_beta->position) * 1.0/3.0)) < 0.0)  {
+        //         // printf("Orientable originally\n");
+        //         orientable = true;
+        //       } else if (circumsphere_center(sigma->position , sigma_beta->position, sigma_alpha->position, rho, ball_center)) {
+        //         // printf("Orientable when flipped\n");
+        //       /*The normal of the computed ball and triangle did not orient with the vertex normals, compute the counterpart ball isntead*/
+        //         flipped = true;
+        //         orientable = true;
+        //       } else {
+        //         orientable = false;
+        //       }
+
+        if (circumsphere_center(sigma_i, sigma_j, v->position, rho, cx)) {
           // printf("\n");
           // printf("Sanity check that at least three points are touching here\n");
           // printf("rho: %4f\n", rho);
@@ -846,7 +858,7 @@ namespace CGL
             } else if (other->position.x == v->position.x && other->position.y == v->position.y && other->position.z == v->position.z ) {
                continue;
             }
-            dist_from_center = (other->position - *cx).norm();
+            dist_from_center = (other->position - cx).norm();
             if (dist_from_center < rho - 0.00001) {
               // printf("A vertex is inside the containing sphere\n");
               valid_flag = false; //flag that too we cannot use this vertex, as another vertex is inside the ball;
@@ -888,10 +900,10 @@ namespace CGL
     // printf("m is the vector %4f %4f %4f\n", m.x, m.y, m.z);
     // Vector3D m_cijo = c_ijo - m;
     // printf("m_cijo is the vector %4f %4f %4f\n", m_cijo.x, m_cijo.y,m_cijo.z);
-    for (Vector3D* candidate_center : candidate_centers) {
-      printf("Candidate center reached at %4f %4f %4f \n", candidate_center->x, candidate_center->y, candidate_center->z);
+    for (Vector3D candidate_center : candidate_centers) {
+      // printf("Candidate center reached at %4f %4f %4f \n", candidate_center->x, candidate_center->y, candidate_center->z);
 
-      Vector3D m_candidate = *candidate_center - m;
+      Vector3D m_candidate = candidate_center - m;
       double norm = (m_cijo.norm()*m_candidate.norm());
       double cos_theta = dot(m_cijo, m_candidate)/norm;
       double sin_theta = cross(m_cijo, m_candidate).norm()/norm;
@@ -1720,7 +1732,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
 
 
-    std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh, HalfedgeIter& populate, std::vector<FaceIter>& current_faces) {
+    std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh, HalfedgeIter& populate, std::vector<FaceIter>& current_faces, int max_count) {
 
     set_rho(mesh, 0.5, false);
     printf("Beginning preprocessing...");
@@ -1851,6 +1863,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
         /*Use voxel accel struct to get the closest points here*/
         int iterations = 1;
+        int iterCount = 0;
         while (active_edges.size() > 0 || iterations < 2) {
 
           bool active_edge_found = false;
@@ -1870,7 +1883,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
             }
           }
 
-          int iterCount = 0;
+
           if (active_edge_found) {
               printf("Active Edge Candidate_found\n");
 
@@ -1904,15 +1917,16 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                     k->BPisUsed = true;
 
                     // printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
-                    if (iterCount >= 1) {
+                    if (iterCount >= max_count) {
                       printf("Premature debug termination\n");
+                      printf("%d\n", max_count);
                       return frozen_vertices;
                     }
                     iterCount++;
 
                   } else {
                     printf("Ball iteration terminated in a bad spot.\n");
-                    populate = insideFront->twin();
+                    populate = insideFront;
                     return frozen_vertices ;
                   }
 
