@@ -452,6 +452,7 @@ namespace CGL
          {
             // iterate over the halfedges incident on this vertex
             HalfedgeIter h = _halfedge;
+            int maxIter = 0;
             do
             {
                // check if the current halfedge is on the boundary
@@ -460,6 +461,10 @@ namespace CGL
                   return true;
                }
 
+               if (maxIter > 10) {
+                return true;
+               }
+               maxIter+=1;
                // move to the next halfedge around the vertex
                h = h->twin()->next();
             }

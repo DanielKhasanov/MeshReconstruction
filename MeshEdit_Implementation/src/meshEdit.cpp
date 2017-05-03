@@ -1084,7 +1084,7 @@ namespace CGL {
                     Vertex* v = selectedFeature.element->getVertex();
                     if( v != NULL )
                     {
-                      ostringstream m1, m2, m3, m4, m5, m6, m7, m8;
+                      ostringstream m1, m2, m3, m4, m5, m6, m7, m8, m9;
                       m1 << "VERTEX DATA";
                       m2 << "address      = " << v;
 
@@ -1111,6 +1111,7 @@ namespace CGL {
                       m6 << "halfedge()   = " << elementAddress(v -> halfedge());
                       m7 << "isBoundary() = " << v -> isBoundary();
                       m8 << "degree()     = " << v->degree();
+                      m9 << "BPisUsed     = " << v->BPisUsed;
 
                       drawString(x0, y, m1.str(), size, text_color);y += inc;
                       drawString(x0, y, m2.str(), size, text_color);y += inc; y+= inc;// linebreak after address.
@@ -1120,6 +1121,7 @@ namespace CGL {
                       drawString(x0, y, m6.str(), size, text_color);y += inc;
                       drawString(x0, y, m7.str(), size, text_color);y += inc;
                       drawString(x0, y, m8.str(), size, text_color);y += inc;
+                      drawString(x0, y, m9.str(), size, text_color);y += inc;
                     }
 
                     Halfedge* h = selectedFeature.element->getHalfedge();
@@ -1152,17 +1154,21 @@ namespace CGL {
                     Edge* e = selectedFeature.element->getEdge();
                     if( e != NULL )
                     {
-                      ostringstream m1, m2, m3, m4;
+                      ostringstream m1, m2, m3, m4, m5, m6;
 
                       m1 << "EDGE DATA";
                       m2 << "address      = " << e;
                       m3 << "halfedge()   = " << elementAddress( e->halfedge() );
                       m4 << "isBoundary() = " << e -> isBoundary() << endl;
+                      m5 << "BPisActive = " << e -> BPisActive << endl;
+                      m6 << "BPisBoundary = " << e -> BPisBoundary << endl;
 
                       drawString(x0, y, m1.str(), size, text_color);y += inc;
                       drawString(x0, y, m2.str(), size, text_color);y += inc; y+= inc;
                       drawString(x0, y, m3.str(), size, text_color);y += inc;
                       drawString(x0, y, m4.str(), size, text_color);y += inc;
+                      drawString(x0, y, m5.str(), size, text_color);y += inc;
+                      drawString(x0, y, m6.str(), size, text_color);y += inc;
                     }
 
 
@@ -1415,7 +1421,7 @@ namespace CGL {
                   {
                     for( FaceIter f = mesh.facesBegin(); f != mesh.facesEnd(); f++ )
                     {
-                      // printf("In loop\n");
+                      printf("In loop\n");
                       // These guys prevent z fighting / prevents the faces from bleeding into the edge lines and points.
                       glEnable(GL_POLYGON_OFFSET_FILL);
                       glPolygonOffset( 1.0, 1.0 );
@@ -1432,12 +1438,12 @@ namespace CGL {
 
                       // Set the normal of this face.
                       Vector3D normal = f->normal();
-                      // printf("normal okay\n");
+                      printf("normal okay\n");
                       glNormal3dv( &normal.x );
 
                       // iterate over this polygon's vertices
                       HalfedgeIter h = f->halfedge();
-                      // printf("marker3\n");
+                      printf("marker3\n");
 
                       int index = 0;
                       do
@@ -1450,7 +1456,7 @@ namespace CGL {
                         glVertex3dv( &position.x );
                         // go to the next vertex in this polygon
                         h = h->next();
-                        if (index > 5) {
+                        if (index > 10) {
                           break;
                         }
                         index++;

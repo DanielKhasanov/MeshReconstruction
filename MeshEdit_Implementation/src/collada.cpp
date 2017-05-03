@@ -891,9 +891,9 @@ namespace CGL {
             for (int k = 0 ; k < 3 - (num_polygons - 1)%3; k++) {
               Vector3D v_dummy = v;
               /*offset built fairly quickly for proof of concept*/
-              v_dummy.x += ((double) k)/1000;
-              v_dummy.y += ((double) k)/1000 + 0.0001;
-              v_dummy.z += ((double) k)/1000 + 0.0002;
+              v_dummy.x += ((double) k)/100;
+              v_dummy.y += ((double) k)/100 + 0.001;
+              v_dummy.z += ((double) k)/100 + 0.002;
               vertices.push_back(v_dummy);
               polymesh->polygons[i/3].vertex_indices.push_back(i+k + 1);
             }

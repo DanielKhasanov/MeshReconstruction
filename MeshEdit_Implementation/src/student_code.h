@@ -24,7 +24,7 @@ namespace CGL {
     bool calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate);
     double set_rho(HalfedgeMesh& mesh, double rho, bool set);
     std::vector<VertexIter > get_neighbors(Vector3D p);
-    unordered_map<int, vector<VertexIter > *> cluster_vertices (HalfedgeMesh& mesh);
+    unordered_map<int, vector<VertexIter > *> cluster_vertices (HalfedgeMesh& mesh, double n);
 
     unordered_map<int, vector<VertexIter > *> map;
     double x_min;
@@ -35,7 +35,7 @@ namespace CGL {
     double z_max;
     double mod;
     double rho;
-    int max_count = 130;
+    int max_count = 3000;//1000*30 - 1400;
   };
 }
 
