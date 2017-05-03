@@ -592,16 +592,18 @@ namespace CGL
 
 
     // printf("QUERY: wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
-    // int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
-    // printf("QUERY: Computed hash is %d\n", hash);
+    int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
+    if (map.find(hash) != map.end()) {
+     // printf("QUERY: Computed hash is %d with size %zu\n",  hash , (*map[hash]).size());
+    }
 
     std::vector<VertexIter>  * vec = new std::vector<VertexIter >();
-    for (int i = max(0, w_index - 1); i <=  min(num_bins - 1, w_index + 1); i +=  1) {
-      for (int j = max(0, h_index - 1); j <=  min(num_bins - 1, h_index + 1); j += 1) {
-        for (int k = max(0, t_index - 1); k <=  min(num_bins - 1, t_index + 1); k++) {
+    for (int i = max(0, w_index - 1); i <=  min(num_bins, w_index + 1); i +=  1) {
+      for (int j = max(0, h_index - 1); j <=  min(num_bins, h_index + 1); j += 1) {
+        for (int k = max(0, t_index - 1); k <=  min(num_bins , t_index + 1); k++) {
 
           int next_hash = num_bins * num_bins * i + num_bins * j + k;
-          // printf("next hash is %d\n", next_hash);
+          // printf("next hash is {%d %d %d} %d\n", i,j,k, next_hash);
           if (map.find(next_hash) != map.end()) {
             // printf("Pushing back voxel at %d %d %d\n",i,j,k );
             // printf("To get a hash value %d with voxel size %zu \n",next_hash, (*map[next_hash]).size() );
@@ -614,7 +616,7 @@ namespace CGL
     }
     // printf("done\n");
     // printf("Sorting neighbors\n");
-    // std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
+    std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
 
     // printf("Done\n");
     return *vec;
@@ -716,15 +718,15 @@ namespace CGL
           }
         } 
         //else if (circumsphere_center(sigma_i, v->position, sigma_j, rho, *cx)) {
-          printf("Alternate circumcenter worked!\n");
-          printf("\n");
-          printf("Sanity check that at least three points are touching here\n");
-          printf("rho: %4f\n", rho);
-          printf("center sphere: %4f %4f %4f\n", cx->x, cx->y, cx->z);
-          printf("sigma_i: %4f %4f %4f -> %4f\n", sigma_i.x, sigma_i.y, sigma_i.z, (sigma_i - *cx).norm() );
-          printf("sigma_j: %4f %4f %4f -> %4f\n", sigma_j.x, sigma_j.y, sigma_j.z, (sigma_j - *cx).norm());
-          printf("candidate vertex: %4f %4f %4f -> %4f\n", v->position.x, v->position.y, v->position.z, (v->position - *cx).norm());
-          printf("\n");
+          // printf("Alternate circumcenter worked!\n");
+          // printf("\n");
+          // printf("Sanity check that at least three points are touching here\n");
+          // printf("rho: %4f\n", rho);
+          // printf("center sphere: %4f %4f %4f\n", cx->x, cx->y, cx->z);
+          // printf("sigma_i: %4f %4f %4f -> %4f\n", sigma_i.x, sigma_i.y, sigma_i.z, (sigma_i - *cx).norm() );
+          // printf("sigma_j: %4f %4f %4f -> %4f\n", sigma_j.x, sigma_j.y, sigma_j.z, (sigma_j - *cx).norm());
+          // printf("candidate vertex: %4f %4f %4f -> %4f\n", v->position.x, v->position.y, v->position.z, (v->position - *cx).norm());
+          // printf("\n");
         //   bool valid_flag  = true;
         //   double dist_from_center;
         //   for (VertexIter other : rho_closest) {
@@ -737,21 +739,21 @@ namespace CGL
         //     }
         //     dist_from_center = (other->position - *cx).norm();
         //     if (dist_from_center < rho - 0.00001) {
-              printf("A vertex is inside the containing sphere\n");
+              // printf("A vertex is inside the containing sphere\n");
         //       valid_flag = false; //flag that too we cannot use this vertex, as another vertex is inside the ball;
         //       break;
         //     }
         //   }
         //   if (valid_flag) { //Ball is touching three points exactly, add v to candidate centers
-            printf("We made a candidate vertex\n");
+            // printf("We made a candidate vertex\n");
         //     candidate_centers.push_back(cx);
-            printf("Candidate center placed at %4f %4f %4f \n", cx->x, cx->y, cx->z);
+            // printf("Candidate center placed at %4f %4f %4f \n", cx->x, cx->y, cx->z);
         //     // circumsphere_center(sigma_i, sigma_j, v->position, rho, *cx);
 
-            printf("sigma_i at: %4f %4f %4f\n", sigma_i.x, sigma_i.y, sigma_i.z);
-            printf("sigma_j at: %4f %4f %4f\n", sigma_j.x, sigma_j.y, sigma_j.z);
-            printf("candidate vertex at: %4f %4f %4f\n", v->position.x, v->position.y, v->position.z);
-            printf("Candidate center sanity check at %4f %4f %4f \n", cx->x, cx->y, cx->z);
+            // printf("sigma_i at: %4f %4f %4f\n", sigma_i.x, sigma_i.y, sigma_i.z);
+            // printf("sigma_j at: %4f %4f %4f\n", sigma_j.x, sigma_j.y, sigma_j.z);
+            // printf("candidate vertex at: %4f %4f %4f\n", v->position.x, v->position.y, v->position.z);
+            // printf("Candidate center sanity check at %4f %4f %4f \n", cx->x, cx->y, cx->z);
         //     candidate_vertices.push_back(v);
         //   }
         // }
@@ -826,7 +828,7 @@ namespace CGL
 bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& populate) {
     int n = points.size();
     if (n < 3) {
-      // printf("normal_at_point: Not enough points to compute normal\n");
+      printf("normal_at_point: Not enough points to compute normal\n");
       return false;
     }
 
@@ -862,22 +864,35 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
     double det_max = max(det_x, max(det_y, det_z));
     if (det_max <= 0.0) {
-      // printf("%s\n", "The points don't span a plane");
+      printf("%s\n", "The points don't span a plane");
       return false;
     }
 
-    if (det_max == det_x) {
+    if (det_max == det_x || true) {
         double a = (xz*yz - xy*zz) / det_x;
         double b = (xy*yz - xz*yy) / det_x;
-        populate = Vector3D(1.0, a, b).norm();
-    } else if (det_max == det_y) {
+        populate = Vector3D(1.0, a, b).unit();
+        // populate = Vector3D(1,0,0);
+        // printf("detxyz: %4f %4f %4f \n", det_x, det_y, det_z);
+        // printf("returning the plane %4f %4f %4f\n", populate.x, populate.y, populate.z);
+    } else if (det_max == det_y && false) {
         double a = (yz*xz - xy*zz) / det_y;
         double b = (xy*xz - yz*xx) / det_y;
-        populate = Vector3D(a, 1.0,  b).norm();
+        
+        populate = Vector3D(a, 1.0, b).unit();
+                // populate = Vector3D(1,0,0);
+
+        // printf("B\n");
+        // printf("returning the plane %4f %4f %4f\n", populate.x, populate.y, populate.z);
     } else {
         double a = (yz*xy - xz*yy) / det_z;
         double b = (xz*xy - yz*xx) / det_z;
-        populate = Vector3D(a, b, 1.0).norm();
+        
+
+        // populate = Vector3D(1,0,0);
+        populate = Vector3D(a, b, 1.0).unit();
+        // printf("C\n");
+        // printf("returning the plane %4f %4f %4f\n", populate.x, populate.y, populate.z);
     }
     return true;
 }
@@ -919,9 +934,9 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         break;
       }
       Vector3D p = v->position;
-      int w_index = (int) (p.x / (2*r));
-      int h_index = (int) (p.y / (2*r));
-      int t_index = (int) (p.z / (2*r));
+      int w_index = (int) ((p.x - x_min)/ (r));
+      int h_index = (int) ((p.y - y_min)/ (r));
+      int t_index = (int) ((p.z - z_min)/ (r));
 
       // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
       int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
@@ -951,9 +966,9 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
       for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
         Vector3D p = v->position;
-        int w_index = (int) (p.x / (2*r));
-        int h_index = (int) (p.y / (2*r));
-        int t_index = (int) (p.z / (2*r));
+        int w_index = (int) ((p.x - x_min)/ (r));
+        int h_index = (int) ((p.y - y_min)/ (r));
+        int t_index = (int) ((p.z - z_min)/ (r));
 
         // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
         int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
@@ -1499,15 +1514,28 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
   }
 
   std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
-    set_rho(mesh, 1.5);
+    set_rho(mesh, 0.05);
 
     for (const auto &entry : map) {
-      std::vector<VertexIter> neighbors = get_neighbors( ((*entry.second)[0])->position ) ;
+      // printf("Entry!\n");
+      std::vector<VertexIter> neighbors = get_neighbors( ((*entry.second)[0])->position );
+
       for (VertexIter v : *entry.second) {
-        normal_at_point(v->position, neighbors, v->norm);
-        v->norm = v->norm.norm();
+        if (normal_at_point(v->position, neighbors, v->norm)) {
+          v->norm *= 1.0/7.5;
+        } 
       }
     }
+
+
+    for (const auto &entry : cluster_vertices(mesh)) {
+      if (make_normals_consistent((*entry.second))) {
+        // printf("Made consistent\n");
+      // } else {
+        // printf("Failed to make consistent\n");
+      }
+    }
+    
 
     //TODO clear everything!
     std::vector<EdgeIter> b1;
@@ -1634,7 +1662,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           int iterCount = 0;
           if (active_edge_found) {
               // printf("Active Edge Candidate_found\n");
-              continue;
+              
             //TODO not_used(), not_internal
             // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
               VertexIter k;

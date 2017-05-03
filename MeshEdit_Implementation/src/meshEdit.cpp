@@ -1270,35 +1270,34 @@ namespace CGL {
                         glEnd();
                       }
                       glEnable( GL_DEPTH_TEST );
-                      if (floating) {
-                        for (VertexIter &v : floating_vertices) {
-                          Vertex ver = *v;
-                          DrawStyle* style = &defaultStyle;
-                          style = &selectStyle;
+                      
+                      for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+                        Vertex ver = *v;
+                        DrawStyle* style = &defaultStyle;
+                        style = &selectStyle;
 
-                          glDisable(GL_DEPTH_TEST);
-                          setColor((&hoverStyle)->vertexColor);
-                          glPointSize( 5.0 );
+                        glDisable(GL_DEPTH_TEST);
+                        setColor((&hoverStyle)->vertexColor);
+                        glPointSize( 5.0 );
 
-                          glBegin( GL_POINTS );
-                          Vector3D p = ver.position;
-                          glVertex3d( p.x, p.y, p.z );
-                          glEnd();
-                          glEnable( GL_DEPTH_TEST );
+                        glBegin( GL_POINTS );
+                        Vector3D p = ver.position;
+                        glVertex3d( p.x, p.y, p.z );
+                        glEnd();
+                        glEnable( GL_DEPTH_TEST );
 
-                          Vector3D p2 = ver.position + ver.norm;
-                          // printf("p1 is %4f %4f %4f\n", p.x, p.y, p.z);
-                          // printf("p2 is %4f %4f %4f\n", p2.x, p2.y, p2.z);
-                          style = &selectStyle;
-                          setColor( style->edgeColor     );
-                          glLineWidth( style->strokeWidth  );
+                        Vector3D p2 = ver.position + ver.norm;
+                        // printf("p1 is %4f %4f %4f\n", p.x, p.y, p.z);
+                        // printf("p2 is %4f %4f %4f\n", p2.x, p2.y, p2.z);
+                        style = &selectStyle;
+                        setColor( style->edgeColor     );
+                        glLineWidth( style->strokeWidth/10.0  );
 
-                          glBegin(GL_LINES);
-                          glVertex3dv( &p.x );
-                          glVertex3dv( &p2.x );
-                          glEnd();
-                        }
-                      }
+                        glBegin(GL_LINES);
+                        glVertex3dv( &p.x );
+                        glVertex3dv( &p2.x );
+                        glEnd();
+                    }
 
 
 
