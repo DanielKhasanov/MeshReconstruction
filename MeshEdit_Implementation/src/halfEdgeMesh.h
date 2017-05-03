@@ -635,7 +635,7 @@ namespace CGL
          VertexIter      splitEdge( EdgeIter e ); ///< split an edge, returning a pointer to the inserted midpoint vertex; the halfedge of this vertex should refer to one of the edges in the original mesh
 
          HalfedgeIter     createSeedTriangle(VertexIter sigma, VertexIter alpha, VertexIter beta);
-         bool             createFrontTriangle(HalfedgeIter insideFront, VertexIter k);
+         bool             createFrontTriangle(HalfedgeIter insideFront, VertexIter k, FaceIter& populate);
 
 
          void check_for(HalfedgeIter h) {

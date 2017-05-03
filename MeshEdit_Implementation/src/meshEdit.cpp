@@ -1413,10 +1413,10 @@ namespace CGL {
 
                   void MeshEdit::drawFaces( HalfedgeMesh& mesh )
                   {
-                    // printf("Drawing faces\n");
+                    printf("Drawing faces\n");
                     for( FaceIter f = mesh.facesBegin(); f != mesh.facesEnd(); f++ )
                     {
-                      // printf("In loop\n");
+                      printf("In loop\n");
                       // These guys prevent z fighting / prevents the faces from bleeding into the edge lines and points.
                       glEnable(GL_POLYGON_OFFSET_FILL);
                       glPolygonOffset( 1.0, 1.0 );
@@ -1458,7 +1458,7 @@ namespace CGL {
                       // printf("Done loop\n");
 
                     }// End of per polygon loop.
-                    // printf("Done looping\n");
+                    printf("Done looping\n");
 
                   }
 
