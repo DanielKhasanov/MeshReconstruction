@@ -507,75 +507,97 @@ namespace CGL
 
   double MeshResampler::set_rho(HalfedgeMesh& mesh, double newRho) {
     // printf("Setting rho\n");
-    for (const auto &entry : map) {
-      delete(entry.second);
-    }
-    // printf("Deleted entries\n");
-    map.clear();
-
-
-    // printf("Iterating...\n");
-    for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
-      Vector3D pos = v->position;
-      if (v == mesh.verticesBegin()) {
-        x_min = pos.x;
-        y_min = pos.y;
-        z_min = pos.z;
-        x_max = pos.x;
-        y_max = pos.y;
-        z_max = pos.z;
-      } else {
-        if (pos.x < x_min) {x_min = pos.x;}
-        if (pos.y < y_min) {y_min = pos.y;}
-        if (pos.z < z_min) {z_min = pos.z;}
-        if (pos.x > x_max) {x_max = pos.x;}
-        if (pos.y > y_max) {y_max = pos.y;}
-        if (pos.z > z_max) {z_max = pos.z;}
-      }
-    }
-    // printf("Done iterating\n");
-    double x_diff = x_max - x_min;
-    double y_diff =  y_max - y_min;
-    double z_diff =  z_max - z_min;
-
-    // printf("Doing some if cases\n");
-    if (x_diff > y_diff) {
-      mod = x_diff;
-    } else {
-      mod = y_diff;
-    }
-    if (z_diff > mod) {
-      mod = z_diff;
-    }
-    // printf("Those are done\n");
-
+    double oldRho;
+    bool flag = true;
+    bool freePass = false;
+    bool flag2 = true;
+    double limit = 20;
     rho = newRho;
     printf("Rho is now %4f\n", rho);
-
-    int num_bins = max((int) (mod/(2.0*rho)), 1) ;
-    // printf("The number of bins is %d\n", num_bins);
-
-    for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
-      Vector3D p = v->position;
-      int w_index = (int) ((p.x - x_min)/ (2*rho));
-      int h_index = (int) ((p.y - y_min)/ (2*rho));
-      int t_index = (int) ((p.z - z_min)/ (2*rho));
-
-      // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
-      int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
-      // printf("Computed hash is %d\n", hash);
-      if (map.find(hash) == map.end()) {
-        std::vector<VertexIter > * vec = new std::vector<VertexIter >();
-        map[hash] = vec;
+    do {
+      flag2 = true;
+      for (const auto &entry : map) {
+        delete(entry.second);
       }
-      map[hash]->push_back(v);
-    }
+      // printf("Deleted entries\n");
+      map.clear();
 
-    int count = 0;
-    for (const auto &entry : map) {
-      printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
-      count++;
-    }
+
+      // printf("Iterating...\n");
+      for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+        Vector3D pos = v->position;
+        if (v == mesh.verticesBegin()) {
+          x_min = pos.x;
+          y_min = pos.y;
+          z_min = pos.z;
+          x_max = pos.x;
+          y_max = pos.y;
+          z_max = pos.z;
+        } else {
+          if (pos.x < x_min) {x_min = pos.x;}
+          if (pos.y < y_min) {y_min = pos.y;}
+          if (pos.z < z_min) {z_min = pos.z;}
+          if (pos.x > x_max) {x_max = pos.x;}
+          if (pos.y > y_max) {y_max = pos.y;}
+          if (pos.z > z_max) {z_max = pos.z;}
+        }
+      }
+      // printf("Done iterating\n");
+      double x_diff = x_max - x_min;
+      double y_diff =  y_max - y_min;
+      double z_diff =  z_max - z_min;
+
+      // printf("Doing some if cases\n");
+      if (x_diff > y_diff) {
+        mod = x_diff;
+      } else {
+        mod = y_diff;
+      }
+      if (z_diff > mod) {
+        mod = z_diff;
+      }
+      // printf("Those are done\n");
+
+
+
+      int num_bins = max((int) (mod/(2.0*rho)), 1) ;
+      // printf("The number of bins is %d\n", num_bins);
+
+      for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+        Vector3D p = v->position;
+        int w_index = (int) ((p.x - x_min)/ (2*rho));
+        int h_index = (int) ((p.y - y_min)/ (2*rho));
+        int t_index = (int) ((p.z - z_min)/ (2*rho));
+
+        // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
+        int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
+        // printf("Computed hash is %d\n", hash);
+        if (map.find(hash) == map.end()) {
+          std::vector<VertexIter > * vec = new std::vector<VertexIter >();
+          map[hash] = vec;
+        }
+        map[hash]->push_back(v);
+      }
+      double count = 0.0;
+      double n = 0;
+      for (const auto &entry : map) {
+        // printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
+        count += entry.second;
+        n++;
+        if (entry.second->size < 3) {
+          freePass = true;
+          flag2 = false;
+        }
+      }
+      if ((freePass && flag2) || (double) count/(double) n < limit) {
+        flag = true;
+      } else if (freepass) {
+        rho = rho * 1.25;
+      } else {
+        rho = rho * 0.75;
+      }
+    } while (flag);
+
 
 
     return rho;
