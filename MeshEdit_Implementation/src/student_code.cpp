@@ -506,12 +506,11 @@ namespace CGL
 
 
   double MeshResampler::set_rho(HalfedgeMesh& mesh, double newRho) {
-    // printf("Setting rho\n");
-    double oldRho;
+    printf("Setting rho\n");
     bool flag = true;
     bool freePass = false;
     bool flag2 = true;
-    double limit = 20;
+    double limit = 40;
     rho = newRho;
     printf("Rho is now %4f\n", rho);
     double count;
@@ -582,23 +581,51 @@ namespace CGL
       }
       count = 0.0;
       n = 0;
+      int min = 0;
       for (const auto &entry : map) {
         // printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
         count += entry.second->size();
         n++;
+        if (n == 1 || entry.second->size() < min) {
+          min = entry.second->size();
+        }
         if (entry.second->size() < 3) {
-          freePass = true;
-          flag2 = false;
+          // printf("Voxel %d has less than 3 vertices\n", entry.first);
+          // for (VertexIter v : *entry.second) {
+          //   Vector3D vec = v->position;
+          //   printf("Locations at %4f %4f %4f\n", vec.x, vec.y, vec.z);
+          // }
+          int sum = 0;
+          for (int i = -1; i <=  1; i +=  1) {
+            for (int j = -1; j <=  1; j += 1) {
+              for (int k = -1; k <=  1; k += 1) {
+
+                int next_hash = entry.first + num_bins * num_bins * i + num_bins * j + k;
+                // printf("next hash is {%d %d %d} %d\n", i,j,k, next_hash);
+                if (map.find(next_hash) != map.end()) {
+                  sum += map[next_hash]->size();
+                }
+              }
+            }
+          }
+          if (sum < 3) {
+            freePass = true;
+            flag2 = false;
+          }
         }
       }
-      printf("Rho is currently %4f", rho);
+      printf("Rho is currently %4f\n", rho);
       if ((freePass && flag2) || (double) count/(double) n < limit) {
-        flag = true;
+        flag = false;
       } else if (freePass) {
-        rho = rho * 1.25;
+        rho = rho * 1.2;
       } else {
-        rho = rho * 0.75;
+        rho = rho * 0.7;
       }
+      printf("Average number of vertices per voxel: %4f\n",(double) count/(double) n );
+
+      // printf("Smallest voxel had %d vertices\n", min);
+      // printf("number of voxels is %f\n", n);
     } while (flag);
 
 
@@ -607,8 +634,8 @@ namespace CGL
     //   // printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
     //   count++;
     // }
-    printf("Rho is set to %4f", rho);
-    printf("Average number of vertices per voxel: %4f",(double) count/(double) n );
+    printf("Rho is set to %4f\n", rho);
+    printf("Average number of vertices per voxel: %4f\n",(double) count/(double) n );
 
     return rho;
   }
@@ -1014,7 +1041,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
         m[hash]->push_back(v);
       }
-      printf("%d and %4f\n", count, r);
+      // printf("%d and %4f\n", count, r);
     }
     // printf("The number of large voxels is %d\n", count);
     // printf("The rho used is %4f\n", r);
@@ -1546,7 +1573,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
   }
 
   std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
-    set_rho(mesh, 0.05);
+    set_rho(mesh, 4.0);
 
     for (const auto &entry : map) {
       // printf("Entry!\n");
@@ -1643,7 +1670,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         }
 
         if (seedFound) {
-          // printf("Seed triangle point found, assimilating it to the mesh we have now\n");
+          printf("Seed triangle point found, assimilating it to the mesh we have now\n");
           mesh.createSeedTriangle(candidate_sigma, sigma_alpha, sigma_beta);
           EdgeIter e1 = candidate_sigma->halfedge()->edge();
           EdgeIter e2 = sigma_alpha->halfedge()->edge();
@@ -1693,7 +1720,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
           int iterCount = 0;
           if (active_edge_found) {
-              // printf("Active Edge Candidate_found\n");
+              printf("Active Edge Candidate_found\n");
 
             //TODO not_used(), not_internal
             // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
@@ -1706,18 +1733,11 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                   // 4. output triangle(i,  k , j )
                   HalfedgeIter insideFront = candidate_active_edge->halfedge();
 
-                    // printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
-                    // if (iterCount >= 0) {
-                      printf("Premature debug termination\n");
-                    //   return frozen_vertices;
-                    // }
-                    // iterCount++;
-                  // printf("CREATING A MISTEAK\n");
                   if (mesh.createFrontTriangle(insideFront, k)) {
-                    // printf("Triangle integrated, testing the edges\n");
+                    printf("Triangle integrated, testing the edges\n");
                     EdgeIter e1 = insideFront->twin()->next()->edge();
                     EdgeIter e2 = e1->halfedge()->next()->edge();
-                    // printf("Edges did not segmentation fault\n");
+                    printf("Edges did not segmentation fault\n");
 
                     if (e1->BPisActive) {
                       active_edges.push_back(e1);
@@ -1730,8 +1750,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                     k->BPisUsed = true;
 
                     // printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
-                    if (iterCount >= 0) {
-                      // printf("Premature debug termination\n");
+                    if (iterCount >= 10) {
+                      printf("Premature debug termination\n");
 
                       return frozen_vertices;
                     }
