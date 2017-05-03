@@ -1025,12 +1025,12 @@ namespace CGL {
 
                     HalfedgeIter v;
                      floating_vertices = resampler.ball_pivot(*mesh, v, current_faces);
-
+                     printf("BPA DONE\n");
 
                     // Since the mesh may have changed, the selected and
                     // hovered features may no longer point to valid elements.
-                    selectedFeature.invalidate();
-                    hoveredFeature.invalidate();
+                    // selectedFeature.invalidate();
+                    // hoveredFeature.invalidate();
                     // selectedFeature.element = elementAddress( v );
                   }
 
@@ -1250,6 +1250,7 @@ namespace CGL {
 
                   void MeshEdit::renderMesh( HalfedgeMesh& mesh )
                   {
+                    // printf("here now\n");
                     if (verticesOnly) {
                       glUseProgram(0);
 
@@ -1260,6 +1261,7 @@ namespace CGL {
 
 
                       for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+                        // printf("Iterating vertices\n");
                         Vertex ver = *v;
                         DrawStyle* style = &defaultStyle;
                         style = &selectStyle;
@@ -1274,6 +1276,7 @@ namespace CGL {
                       glEnable( GL_DEPTH_TEST );
                       if (floating) {
                         for (VertexIter v : floating_vertices) {
+                          // printf("rendering\n");
                           Vertex ver = *v;
                           DrawStyle* style = &defaultStyle;
                           style = &selectStyle;
@@ -1341,21 +1344,27 @@ namespace CGL {
                       }
                       return;
                     }
-                    if(shadingMode)
+                    // printf("here pt2\n");
+                    if(shadingMode) 
                     glUseProgram(shaderProgID);
                     else
                     glUseProgram(0);
                     glEnable(GL_LIGHTING);
+                    // printf("Nomesh?\n");
                     drawFaces( mesh );
+                    // printf("Mesh okay\n");
                     glDisable(GL_LIGHTING);
 
                     glUseProgram(0);
-
+                    // printf("\n\n\n");
+                    // printf("pt3\n");
                     if(!shadingMode)
                     {
+                      // printf("In not shading mode\n");
                       // Edges are drawn with flat shading.
+                      // printf("drawEdges\n");
                       drawEdges( mesh );
-
+                      // printf("draw vertices\n");
                       drawVertices( mesh );
                       drawHalfedges( mesh );
                     }
@@ -1388,10 +1397,10 @@ namespace CGL {
 
                   void MeshEdit::drawFaces( HalfedgeMesh& mesh )
                   {
-
+                    // printf("Drawing faces\n");
                     for( FaceIter f = mesh.facesBegin(); f != mesh.facesEnd(); f++ )
                     {
-
+                      // printf("In loop\n");
                       // These guys prevent z fighting / prevents the faces from bleeding into the edge lines and points.
                       glEnable(GL_POLYGON_OFFSET_FILL);
                       glPolygonOffset( 1.0, 1.0 );
@@ -1401,17 +1410,19 @@ namespace CGL {
 
                       // Coloring.
                       setElementStyle( elementAddress( f ) );
-
+                      // printf("mark2\n");
                       // Start specifying the polygon.
                       glBegin(GL_POLYGON);
 
+                      // printf("calculate normal\n");
                       // Set the normal of this face.
                       Vector3D normal = f->normal();
-
+                      // printf("normal okay\n");
                       glNormal3dv( &normal.x );
 
                       // iterate over this polygon's vertices
                       HalfedgeIter h = f->halfedge();
+                      // printf("marker3\n");
                       do
                       {
                         if(smoothShading)
@@ -1428,8 +1439,10 @@ namespace CGL {
 
                       // Finish drawing the polygon.
                       glEnd();
+                      // printf("Done loop\n");
 
                     }// End of per polygon loop.
+                    // printf("Done looping\n");
 
                   }
 
