@@ -1413,10 +1413,9 @@ namespace CGL {
 
                   void MeshEdit::drawFaces( HalfedgeMesh& mesh )
                   {
-                    printf("Drawing faces\n");
                     for( FaceIter f = mesh.facesBegin(); f != mesh.facesEnd(); f++ )
                     {
-                      printf("In loop\n");
+                      // printf("In loop\n");
                       // These guys prevent z fighting / prevents the faces from bleeding into the edge lines and points.
                       glEnable(GL_POLYGON_OFFSET_FILL);
                       glPolygonOffset( 1.0, 1.0 );
@@ -1425,12 +1424,12 @@ namespace CGL {
                       glEnable(GL_COLOR_MATERIAL);
 
                       // Coloring.
+                      // printf("loop1\n");
                       setElementStyle( elementAddress( f ) );
                       // printf("mark2\n");
                       // Start specifying the polygon.
                       glBegin(GL_POLYGON);
 
-                      // printf("calculate normal\n");
                       // Set the normal of this face.
                       Vector3D normal = f->normal();
                       // printf("normal okay\n");
@@ -1439,6 +1438,8 @@ namespace CGL {
                       // iterate over this polygon's vertices
                       HalfedgeIter h = f->halfedge();
                       // printf("marker3\n");
+
+                      int index = 0;
                       do
                       {
                         if(smoothShading)
@@ -1447,9 +1448,12 @@ namespace CGL {
                         // Draw this vertex.
                         Vector3D position = h->vertex()->position;
                         glVertex3dv( &position.x );
-
                         // go to the next vertex in this polygon
                         h = h->next();
+                        if (index > 5) {
+                          break;
+                        }
+                        index++;
 
                       } while( h != f->halfedge() ); // end of iteration over polygon vertices
 
@@ -1458,7 +1462,6 @@ namespace CGL {
                       // printf("Done loop\n");
 
                     }// End of per polygon loop.
-                    printf("Done looping\n");
 
                   }
 

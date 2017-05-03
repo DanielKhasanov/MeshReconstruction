@@ -35,7 +35,7 @@ namespace CGL {
     double z_max;
     double mod;
     double rho;
-    int max_count = 33;
+    int max_count = 130;
   };
 }
 
