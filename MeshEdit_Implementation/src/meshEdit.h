@@ -230,6 +230,7 @@ class MeshEdit : public Renderer {
   Scene* scene;
 
   vector<MeshNode> meshNodes;
+  std::vector<VertexIter> floating_vertices;
 
   // View Frustrum Variables.
   float hfov; // FIXME : I would like to specify the view frustrum
@@ -246,6 +247,7 @@ class MeshEdit : public Renderer {
   bool shadingMode;
   bool smoothShading;
   bool verticesOnly;
+  bool floating;
   float brownMap[2*XMAX*YMAX*ZMAX];
 
   // Specify the location of eye and what it is pointing at.

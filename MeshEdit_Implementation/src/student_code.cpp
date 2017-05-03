@@ -814,7 +814,7 @@ namespace CGL
   bool MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate) {
     HalfedgeIter hIter = h.twin()->twin();
 
-    set_rho(mesh, 0.4);
+    set_rho(mesh, 2.0);
 
     cluster_vertices(mesh);
     return pivot_from(hIter, rho, populate, this);
@@ -911,6 +911,33 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     double r = mod/3.0;
     int count = 0;
     unordered_map<int, vector<VertexIter > *> m;
+    int c = 0;
+    int num_bins = max((int) (mod/(2.0*r)), 1) ;
+    for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+      c++;
+      if (c >= 20) {
+        break;
+      }
+      Vector3D p = v->position;
+      int w_index = (int) (p.x / (2*r));
+      int h_index = (int) (p.y / (2*r));
+      int t_index = (int) (p.z / (2*r));
+
+      // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
+      int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
+      // printf("Computed hash is %d\n", hash);
+
+      if (m.find(hash) == m.end()) {
+        std::vector<VertexIter > * vec = new std::vector<VertexIter >();
+        m[hash] = vec;
+        count++;
+      }
+
+      m[hash]->push_back(v);
+    }
+    if (c < 20) {
+      return m;
+    }
     while (count < 20) {
       for (const auto &entry : m) {
         delete(entry.second);
