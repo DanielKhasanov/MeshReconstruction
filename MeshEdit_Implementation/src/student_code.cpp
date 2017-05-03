@@ -529,8 +529,8 @@ namespace CGL
         if (pos.y < y_min) {y_min = pos.y;}
         if (pos.z < z_min) {z_min = pos.z;}
         if (pos.x > x_max) {x_max = pos.x;}
-        if (pos.y < y_max) {y_max = pos.y;}
-        if (pos.z < z_max) {z_max = pos.z;}
+        if (pos.y > y_max) {y_max = pos.y;}
+        if (pos.z > z_max) {z_max = pos.z;}
       }
     }
     // printf("Done iterating\n");
@@ -767,7 +767,7 @@ namespace CGL
   bool MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate) {
     HalfedgeIter hIter = h.twin()->twin();
 
-    set_rho(mesh, 2.0);
+    set_rho(mesh, 0.4);
     cluster_vertices(mesh);
 
     return pivot_from(hIter, rho, populate, this);
@@ -864,12 +864,12 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     double r = mod/3.0;
     int count = 0;
     unordered_map<int, vector<VertexIter > *> m;
-    while (count < 25) {
-      for (const auto &entry : map) {
+    while (count < 20) {
+      for (const auto &entry : m) {
         delete(entry.second);
       }
       // printf("Deleted entries\n");
-      map.clear();
+      m.clear();
       count = 0;
       r = r/2.0;
       int num_bins = max((int) (mod/(2.0*r)), 1) ;
@@ -890,8 +890,10 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           m[hash] = vec;
           count++;
         }
+
         m[hash]->push_back(v);
       }
+      printf("%d and %4f\n", count, r);
     }
     printf("The number of large voxels is %d\n", count);
     printf("The rho used is %4f\n", r);
