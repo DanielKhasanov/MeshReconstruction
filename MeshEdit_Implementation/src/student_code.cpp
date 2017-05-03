@@ -1584,7 +1584,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         boundaryFace1->halfedge() = o1;
         FaceIter boundaryFace2 = this->newBoundary();
         boundaryFace2->halfedge() = o2;
-        
+
 
 
 
@@ -1850,8 +1850,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
         //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
         /*Use voxel accel struct to get the closest points here*/
-
-        while (active_edges.size() > 0) {
+        int iterations = 1;
+        while (active_edges.size() > 0 || iterations < 2) {
 
           bool active_edge_found = false;
           EdgeIter candidate_active_edge;
@@ -1935,11 +1935,13 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
             }
           }
         }
-        // iterations++;
-        // set_rho(mesh, rho*75, true);
-        // for( VertexIter v : unused_vertices ) {
-        //   if (v->BPisUsed = false) {
+        // if (active_edges.size() == 0) {
+        //   iterations++;
+        //   set_rho(mesh, rho*75, true);
+        //   for( VertexIter v : unused_vertices ) {
+        //     if (v->BPisUsed = false) {
         //
+        //     }
         //   }
         // }
 
@@ -1949,7 +1951,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     printf("Vertices\n");
     for( VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++ ) {
         printf("%4f\n",v->position.x);
-        
+
     }
 
     printf("done\n");
