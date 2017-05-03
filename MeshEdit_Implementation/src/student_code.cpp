@@ -1514,7 +1514,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
   }
 
   std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
-    set_rho(mesh, 0.05);
+    set_rho(mesh, 4.0);
 
     for (const auto &entry : map) {
       // printf("Entry!\n");
@@ -1611,7 +1611,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         }
 
         if (seedFound) {
-          // printf("Seed triangle point found, assimilating it to the mesh we have now\n");
+          printf("Seed triangle point found, assimilating it to the mesh we have now\n");
           mesh.createSeedTriangle(candidate_sigma, sigma_alpha, sigma_beta);
           EdgeIter e1 = candidate_sigma->halfedge()->edge();
           EdgeIter e2 = sigma_alpha->halfedge()->edge();
@@ -1661,7 +1661,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
           int iterCount = 0;
           if (active_edge_found) {
-              // printf("Active Edge Candidate_found\n");
+              printf("Active Edge Candidate_found\n");
               
             //TODO not_used(), not_internal
             // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
@@ -1674,18 +1674,11 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                   // 4. output triangle(i,  k , j )
                   HalfedgeIter insideFront = candidate_active_edge->halfedge();
 
-                    // printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
-                    // if (iterCount >= 0) {
-                      printf("Premature debug termination\n");
-                    //   return frozen_vertices;
-                    // }
-                    // iterCount++;
-                  // printf("CREATING A MISTEAK\n");
                   if (mesh.createFrontTriangle(insideFront, k)) {
-                    // printf("Triangle integrated, testing the edges\n");
+                    printf("Triangle integrated, testing the edges\n");
                     EdgeIter e1 = insideFront->twin()->next()->edge();
                     EdgeIter e2 = e1->halfedge()->next()->edge();
-                    // printf("Edges did not segmentation fault\n");
+                    printf("Edges did not segmentation fault\n");
 
                     if (e1->BPisActive) {
                       active_edges.push_back(e1);
@@ -1698,8 +1691,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                     k->BPisUsed = true;
 
                     // printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
-                    if (iterCount >= 0) {
-                      // printf("Premature debug termination\n");
+                    if (iterCount >= 10) {
+                      printf("Premature debug termination\n");
 
                       return frozen_vertices;
                     }
