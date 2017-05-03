@@ -1022,13 +1022,13 @@ namespace CGL {
                     {
                       mesh = &( meshNodes.begin()->mesh );
                     }
-
-                    floating_vertices = resampler.ball_pivot( *mesh );
+                    HalfedgeIter v;
+                    floating_vertices = resampler.ball_pivot( *mesh, v );
 
                     // Since the mesh may have changed, the selected and
                     // hovered features may no longer point to valid elements.
-                    // selectedFeature.invalidate();
-                    // hoveredFeature.invalidate();
+                    selectedFeature.invalidate();
+                    hoveredFeature.invalidate();
                     // selectedFeature.element = elementAddress( v );
                   }
 
