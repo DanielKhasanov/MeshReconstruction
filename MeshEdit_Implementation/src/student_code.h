@@ -22,6 +22,7 @@ namespace CGL {
     bool calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate);
     double set_rho(HalfedgeMesh& mesh, double rho);
     std::vector<VertexIter > get_neighbors(Vector3D p);
+    unordered_map<int, vector<VertexIter > *> cluster_vertices (HalfedgeMesh& mesh);
 
     unordered_map<int, vector<VertexIter > *> map;
     double x_min;
