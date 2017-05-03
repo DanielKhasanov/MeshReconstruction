@@ -529,8 +529,8 @@ namespace CGL
         if (pos.y < y_min) {y_min = pos.y;}
         if (pos.z < z_min) {z_min = pos.z;}
         if (pos.x > x_max) {x_max = pos.x;}
-        if (pos.y > y_max) {y_max = pos.y;}
-        if (pos.z > z_max) {z_max = pos.z;}
+        if (pos.y < y_max) {y_max = pos.y;}
+        if (pos.z < z_max) {z_max = pos.z;}
       }
     }
     // printf("Done iterating\n");
@@ -606,7 +606,7 @@ namespace CGL
     }
     // printf("done\n");
     // printf("Sorting neighbors\n");
-    std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
+    // std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
 
     // printf("Done\n");
     return *vec;
@@ -768,6 +768,7 @@ namespace CGL
     HalfedgeIter hIter = h.twin()->twin();
 
     set_rho(mesh, 2.0);
+    cluster_vertices(mesh);
 
     return pivot_from(hIter, rho, populate, this);
   }
@@ -890,7 +891,10 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           count++;
         }
         m[hash]->push_back(v);
+      }
     }
+    printf("The number of large voxels is %d\n", count);
+    printf("The rho used is %4f\n", r);
     return m;
   }
 
