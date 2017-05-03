@@ -529,8 +529,8 @@ namespace CGL
         if (pos.y < y_min) {y_min = pos.y;}
         if (pos.z < z_min) {z_min = pos.z;}
         if (pos.x > x_max) {x_max = pos.x;}
-        if (pos.y > y_max) {y_max = pos.y;}
-        if (pos.z > z_max) {z_max = pos.z;}
+        if (pos.y < y_max) {y_max = pos.y;}
+        if (pos.z < z_max) {z_max = pos.z;}
       }
     }
     // printf("Done iterating\n");
@@ -561,9 +561,9 @@ namespace CGL
       int h_index = (int) ((p.y - y_min)/ (2*rho));
       int t_index = (int) ((p.z - z_min)/ (2*rho));
 
-      printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
+      // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
       int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
-      printf("Computed hash is %d\n", hash);
+      // printf("Computed hash is %d\n", hash);
       if (map.find(hash) == map.end()) {
         std::vector<VertexIter > * vec = new std::vector<VertexIter >();
         map[hash] = vec;
@@ -614,7 +614,7 @@ namespace CGL
     }
     // printf("done\n");
     // printf("Sorting neighbors\n");
-    std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
+    // std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
 
     // printf("Done\n");
     return *vec;
@@ -814,8 +814,9 @@ namespace CGL
   bool MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate) {
     HalfedgeIter hIter = h.twin()->twin();
 
-    set_rho(mesh, 2);
 
+    set_rho(mesh, 2.0);
+    cluster_vertices(mesh);
     return pivot_from(hIter, rho, populate, this);
   }
 
@@ -905,6 +906,43 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
         v->norm = -1.0*(v->norm);
       }
     }
+  }
+  unordered_map<int, vector<VertexIter > *> MeshResampler::cluster_vertices (HalfedgeMesh& mesh) {
+    double r = mod/3.0;
+    int count = 0;
+    unordered_map<int, vector<VertexIter > *> m;
+    while (count < 25) {
+      for (const auto &entry : map) {
+        delete(entry.second);
+      }
+      // printf("Deleted entries\n");
+      map.clear();
+      count = 0;
+      r = r/2.0;
+      int num_bins = max((int) (mod/(2.0*r)), 1) ;
+      // printf("The number of bins is %d\n", num_bins);
+
+      for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+        Vector3D p = v->position;
+        int w_index = (int) (p.x / (2*r));
+        int h_index = (int) (p.y / (2*r));
+        int t_index = (int) (p.z / (2*r));
+
+        // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
+        int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
+        // printf("Computed hash is %d\n", hash);
+
+        if (m.find(hash) == m.end()) {
+          std::vector<VertexIter > * vec = new std::vector<VertexIter >();
+          m[hash] = vec;
+          count++;
+        }
+        m[hash]->push_back(v);
+      }
+    }
+    printf("The number of large voxels is %d\n", count);
+    printf("The rho used is %4f\n", r);
+    return m;
   }
 
   HalfedgeIter HalfedgeMesh::createSeedTriangle(VertexIter sigma, VertexIter  alpha, VertexIter beta) { /*This only gets called on three isolated vertices if the algorithm is run properly*/
