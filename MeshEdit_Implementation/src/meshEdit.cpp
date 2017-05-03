@@ -1019,15 +1019,13 @@ namespace CGL {
                       mesh = &( meshNodes.begin()->mesh );
                     }
 
-                    HalfedgeIter v = resampler.ball_pivot( *mesh );
-
-
+                    std::vector<VertexIter> floating_vertices = resampler.ball_pivot( *mesh );
 
                     // Since the mesh may have changed, the selected and
                     // hovered features may no longer point to valid elements.
-                    selectedFeature.invalidate();
-                    hoveredFeature.invalidate();
-                    selectedFeature.element = elementAddress( v );
+                    // selectedFeature.invalidate();
+                    // hoveredFeature.invalidate();
+                    // selectedFeature.element = elementAddress( v );
                   }
 
                   inline void MeshEdit::drawString(float x, float y, string str, size_t size, Color c)
