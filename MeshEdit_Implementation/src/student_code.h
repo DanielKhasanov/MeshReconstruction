@@ -18,7 +18,9 @@ namespace CGL {
     ~MeshResampler(){}
 
     void upsample(HalfedgeMesh& mesh);
-    std::vector<VertexIter> ball_pivot(HalfedgeMesh& mesh, HalfedgeIter& populate);
+
+    std::vector<VertexIter> ball_pivot(HalfedgeMesh& mesh, HalfedgeIter& populate,std::vector<FaceIter> &current_faces);
+
     bool calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate);
     double set_rho(HalfedgeMesh& mesh, double rho);
     std::vector<VertexIter > get_neighbors(Vector3D p);

@@ -506,77 +506,136 @@ namespace CGL
 
 
   double MeshResampler::set_rho(HalfedgeMesh& mesh, double newRho) {
-    // printf("Setting rho\n");
-    for (const auto &entry : map) {
-      delete(entry.second);
-    }
-    // printf("Deleted entries\n");
-    map.clear();
-
-
-    // printf("Iterating...\n");
-    for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
-      Vector3D pos = v->position;
-      if (v == mesh.verticesBegin()) {
-        x_min = pos.x;
-        y_min = pos.y;
-        z_min = pos.z;
-        x_max = pos.x;
-        y_max = pos.y;
-        z_max = pos.z;
-      } else {
-        if (pos.x < x_min) {x_min = pos.x;}
-        if (pos.y < y_min) {y_min = pos.y;}
-        if (pos.z < z_min) {z_min = pos.z;}
-        if (pos.x > x_max) {x_max = pos.x;}
-        if (pos.y > y_max) {y_max = pos.y;}
-        if (pos.z > z_max) {z_max = pos.z;}
-      }
-    }
-    // printf("Done iterating\n");
-    double x_diff = x_max - x_min;
-    double y_diff =  y_max - y_min;
-    double z_diff =  z_max - z_min;
-
-    // printf("Doing some if cases\n");
-    if (x_diff > y_diff) {
-      mod = x_diff;
-    } else {
-      mod = y_diff;
-    }
-    if (z_diff > mod) {
-      mod = z_diff;
-    }
-    // printf("Those are done\n");
-
+    printf("Setting rho\n");
+    bool flag = true;
+    bool freePass = false;
+    bool flag2 = true;
+    double limit = 40;
     rho = newRho;
     // printf("Rho is now %4f\n", rho);
-
-    int num_bins = max((int) (mod/(2.0*rho)), 1) ;
-    // printf("The number of bins is %d\n", num_bins);
-
-    for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
-      Vector3D p = v->position;
-      int w_index = (int) ((p.x - x_min)/ (2*rho));
-      int h_index = (int) ((p.y - y_min)/ (2*rho));
-      int t_index = (int) ((p.z - z_min)/ (2*rho));
-
-      // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
-      int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
-      // printf("Computed hash is %d\n", hash);
-      if (map.find(hash) == map.end()) {
-        std::vector<VertexIter > * vec = new std::vector<VertexIter >();
-        map[hash] = vec;
+    double count;
+    double n;
+    do {
+      flag2 = true;
+      for (const auto &entry : map) {
+        delete(entry.second);
       }
-      map[hash]->push_back(v);
-    }
+      // printf("Deleted entries\n");
+      map.clear();
 
-    int count = 0;
-    for (const auto &entry : map) {
-      // printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
-      count++;
-    }
 
+      // printf("Iterating...\n");
+      for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+        Vector3D pos = v->position;
+        if (v == mesh.verticesBegin()) {
+          x_min = pos.x;
+          y_min = pos.y;
+          z_min = pos.z;
+          x_max = pos.x;
+          y_max = pos.y;
+          z_max = pos.z;
+        } else {
+          if (pos.x < x_min) {x_min = pos.x;}
+          if (pos.y < y_min) {y_min = pos.y;}
+          if (pos.z < z_min) {z_min = pos.z;}
+          if (pos.x > x_max) {x_max = pos.x;}
+          if (pos.y > y_max) {y_max = pos.y;}
+          if (pos.z > z_max) {z_max = pos.z;}
+        }
+      }
+      // printf("Done iterating\n");
+      double x_diff = x_max - x_min;
+      double y_diff =  y_max - y_min;
+      double z_diff =  z_max - z_min;
+
+      // printf("Doing some if cases\n");
+      if (x_diff > y_diff) {
+        mod = x_diff;
+      } else {
+        mod = y_diff;
+      }
+      if (z_diff > mod) {
+        mod = z_diff;
+      }
+      // printf("Those are done\n");
+
+
+
+      int num_bins = max((int) (mod/(2.0*rho)), 1) ;
+      // printf("The number of bins is %d\n", num_bins);
+
+      for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+        Vector3D p = v->position;
+        int w_index = (int) ((p.x - x_min)/ (2*rho));
+        int h_index = (int) ((p.y - y_min)/ (2*rho));
+        int t_index = (int) ((p.z - z_min)/ (2*rho));
+
+        // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
+        int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
+        // printf("Computed hash is %d\n", hash);
+        if (map.find(hash) == map.end()) {
+          std::vector<VertexIter > * vec = new std::vector<VertexIter >();
+          map[hash] = vec;
+        }
+        map[hash]->push_back(v);
+      }
+      count = 0.0;
+      n = 0;
+      int min = 0;
+      for (const auto &entry : map) {
+        // printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
+        count += entry.second->size();
+        n++;
+        if (n == 1 || entry.second->size() < min) {
+          min = entry.second->size();
+        }
+        if (entry.second->size() < 3) {
+          // printf("Voxel %d has less than 3 vertices\n", entry.first);
+          // for (VertexIter v : *entry.second) {
+          //   Vector3D vec = v->position;
+          //   printf("Locations at %4f %4f %4f\n", vec.x, vec.y, vec.z);
+          // }
+          int sum = 0;
+          for (int i = -1; i <=  1; i +=  1) {
+            for (int j = -1; j <=  1; j += 1) {
+              for (int k = -1; k <=  1; k += 1) {
+
+                int next_hash = entry.first + num_bins * num_bins * i + num_bins * j + k;
+                // printf("next hash is {%d %d %d} %d\n", i,j,k, next_hash);
+                if (map.find(next_hash) != map.end()) {
+                  sum += map[next_hash]->size();
+                }
+              }
+            }
+          }
+          if (sum < 3) {
+            freePass = true;
+            flag2 = false;
+          }
+        }
+      }
+      // printf("Rho is currently %4f\n", rho);
+      if ((freePass && flag2) || (double) count/(double) n < limit) {
+        flag = false;
+      } else if (freePass) {
+        rho = rho * 1.2;
+      } else {
+        rho = rho * 0.7;
+      }
+      // printf("Average number of vertices per voxel: %4f\n",(double) count/(double) n );
+
+      // printf("Smallest voxel had %d vertices\n", min);
+      // printf("number of voxels is %f\n", n);
+    } while (flag);
+
+
+    // int count = 0;
+    // for (const auto &entry : map) {
+    //   // printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
+    //   count++;
+    // }
+    printf("Rho is set to %4f\n", rho);
+    printf("Average number of vertices per voxel: %4f\n",(double) count/(double) n );
 
     return rho;
   }
@@ -616,7 +675,7 @@ namespace CGL
     }
     // printf("done\n");
     // printf("Sorting neighbors\n");
-    std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
+    // std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
 
     // printf("Done\n");
     return *vec;
@@ -868,7 +927,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     } else if (det_max == det_y && false) {
         double a = (yz*xz - xy*zz) / det_y;
         double b = (xy*xz - yz*xx) / det_y;
-        
+
         populate = Vector3D(a, 1.0, b).unit();
                 // populate = Vector3D(1,0,0);
 
@@ -877,7 +936,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     } else {
         double a = (yz*xy - xz*yy) / det_z;
         double b = (xz*xy - yz*xx) / det_z;
-        
+
 
         // populate = Vector3D(1,0,0);
         populate = Vector3D(a, b, 1.0).unit();
@@ -1203,9 +1262,9 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
             break;
           }
           // printf("jjj\n");
-          if (count > 5) {
-            return false;
-          }
+          // if (count > 5) {
+          //   return false;
+          // }
           count++;
           // return false;
           h = h->twin()->next();} while( h != alpha->halfedge() );
@@ -1540,7 +1599,12 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     return false;
   }
 
-  std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh, HalfedgeIter& populate) {
+
+
+
+
+    std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh, HalfedgeIter& populate, std::vector<FaceIter>& current_faces) {
+
     set_rho(mesh, 0.5);
     printf("Beginning preprocessing...");
     for (const auto &entry : map) {
@@ -1550,14 +1614,14 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
       for (VertexIter v : *entry.second) {
         if (normal_at_point(v->position, neighbors, v->norm)) {
           v->norm *= 1.0/7.5;
-        } 
+        }
       }
     }
     for (const auto &entry : cluster_vertices(mesh)) {
       make_normals_consistent((*entry.second));
     }
-    printf("Done \n");
 
+    printf("Done \n");
 
     //TODO clear everything!
     printf("Deleting existing topology...");
@@ -1626,7 +1690,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           }
 
           if (candidate_found) {
-            // printf("Candidate_found\n");
+            printf("Candidate_found\n");
             seedFound = computeSeedTriangleGivenPoint(candidate_sigma, get_neighbors(candidate_sigma->position), rho, sigma_alpha, sigma_beta);
             if (!(seedFound)) {
               printf("Froze a vertex\n");
@@ -1658,8 +1722,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           // printf("returned correctly\n");
         } else {
           /*We must try another rho or kill the floating vertices and call it done*/
-          // printf("No more candidate seeds found\n");
-          break;
+          printf("No more candidate seeds found\n");
+          return frozen_vertices ;
         }
 
         //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
@@ -1687,7 +1751,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           int iterCount = 0;
           if (active_edge_found) {
               printf("Active Edge Candidate_found\n");
-              
+
             //TODO not_used(), not_internal
             // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
               VertexIter k;
@@ -1729,7 +1793,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                   }
 
                 } else {
-                  // printf("The point was invalid, marking as boundary\n");               
+                  // printf("The point was invalid, marking as boundary\n");
                 //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing
                   //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
                 // 5. join(e(i,j) , k , F)

@@ -1022,8 +1022,10 @@ namespace CGL {
                     {
                       mesh = &( meshNodes.begin()->mesh );
                     }
+
                     HalfedgeIter v;
-                    floating_vertices = resampler.ball_pivot( *mesh, v );
+                     floating_vertices = resampler.ball_pivot(*mesh, v, current_faces);
+
 
                     // Since the mesh may have changed, the selected and
                     // hovered features may no longer point to valid elements.
@@ -1270,37 +1272,73 @@ namespace CGL {
                         glEnd();
                       }
                       glEnable( GL_DEPTH_TEST );
-                      
-                      for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
-                        Vertex ver = *v;
-                        DrawStyle* style = &defaultStyle;
-                        style = &selectStyle;
+                      if (floating) {
+                        for (VertexIter v : floating_vertices) {
+                          Vertex ver = *v;
+                          DrawStyle* style = &defaultStyle;
+                          style = &selectStyle;
 
-                        glDisable(GL_DEPTH_TEST);
-                        setColor((&hoverStyle)->vertexColor);
-                        glPointSize( 5.0 );
+                          glDisable(GL_DEPTH_TEST);
+                          setColor((&hoverStyle)->vertexColor);
+                          glPointSize( 5.0 );
 
-                        glBegin( GL_POINTS );
-                        Vector3D p = ver.position;
-                        glVertex3d( p.x, p.y, p.z );
-                        glEnd();
-                        glEnable( GL_DEPTH_TEST );
+                          glBegin( GL_POINTS );
+                          Vector3D p = ver.position;
+                          glVertex3d( p.x, p.y, p.z );
+                          glEnd();
+                          glEnable( GL_DEPTH_TEST );
 
-                        Vector3D p2 = ver.position + ver.norm;
-                        // printf("p1 is %4f %4f %4f\n", p.x, p.y, p.z);
-                        // printf("p2 is %4f %4f %4f\n", p2.x, p2.y, p2.z);
-                        style = &selectStyle;
-                        setColor( style->edgeColor     );
-                        glLineWidth( style->strokeWidth/10.0  );
+                          Vector3D p2 = ver.position + ver.norm;
+                          // printf("p1 is %4f %4f %4f\n", p.x, p.y, p.z);
+                          // printf("p2 is %4f %4f %4f\n", p2.x, p2.y, p2.z);
+                          style = &selectStyle;
+                          setColor( style->edgeColor     );
+                          glLineWidth( style->strokeWidth/10.0  );
 
-                        glBegin(GL_LINES);
-                        glVertex3dv( &p.x );
-                        glVertex3dv( &p2.x );
-                        glEnd();
-                    }
+                          glBegin(GL_LINES);
+                          glVertex3dv( &p.x );
+                          glVertex3dv( &p2.x );
+                          glEnd();
+                        }
+                        for (FaceIter f : current_faces) {
+                          // These guys prevent z fighting / prevents the faces from bleeding into the edge lines and points.
+                          glEnable(GL_POLYGON_OFFSET_FILL);
+                          glPolygonOffset( 1.0, 1.0 );
 
+                          glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+                          glEnable(GL_COLOR_MATERIAL);
 
+                          // Coloring.
+                          setElementStyle( elementAddress( f ) );
 
+                          // Start specifying the polygon.
+                          glBegin(GL_POLYGON);
+
+                          // Set the normal of this face.
+                          Vector3D normal = f->normal();
+
+                          glNormal3dv( &normal.x );
+
+                          // iterate over this polygon's vertices
+                          HalfedgeIter h = f->halfedge();
+                          do
+                          {
+                            if(smoothShading)
+                            normal = h->vertex()->normal();
+                            glNormal3dv( &normal.x );
+                            // Draw this vertex.
+                            Vector3D position = h->vertex()->position;
+                            glVertex3dv( &position.x );
+
+                            // go to the next vertex in this polygon
+                            h = h->next();
+
+                          } while( h != f->halfedge() ); // end of iteration over polygon vertices
+
+                          // Finish drawing the polygon.
+                          glEnd();
+                        }
+                      }
                       return;
                     }
                     if(shadingMode)
