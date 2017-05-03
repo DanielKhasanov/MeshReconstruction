@@ -541,7 +541,6 @@ namespace CGL
     // printf("Doing some if cases\n");
     if (x_diff > y_diff) {
       mod = x_diff;
-
     } else {
       mod = y_diff;
     }
@@ -551,16 +550,16 @@ namespace CGL
     // printf("Those are done\n");
 
     rho = newRho;
-    // printf("Rho is now %4f\n", rho);
+    printf("Rho is now %4f\n", rho);
 
     int num_bins = max((int) (mod/(2.0*rho)), 1) ;
     // printf("The number of bins is %d\n", num_bins);
 
     for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
       Vector3D p = v->position;
-      int w_index = (int) (p.x / (2*rho));
-      int h_index = (int) (p.y / (2*rho));
-      int t_index = (int) (p.z / (2*rho));
+      int w_index = (int) ((p.x - x_min)/ (2*rho));
+      int h_index = (int) ((p.y - y_min)/ (2*rho));
+      int t_index = (int) ((p.z - z_min)/ (2*rho));
 
       // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
       int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
@@ -572,11 +571,11 @@ namespace CGL
       map[hash]->push_back(v);
     }
 
-    // int count = 0;
-    // for (const auto &entry : map) {
-    //   printf("voxel%d has %d entries\n", count, entry.second->size());
-    //   count++;
-    // }
+    int count = 0;
+    for (const auto &entry : map) {
+      printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
+      count++;
+    }
 
 
     return rho;
@@ -585,18 +584,27 @@ namespace CGL
   std::vector<VertexIter> MeshResampler::get_neighbors(Vector3D p) {
     // printf("getting neighbors\n");
     int num_bins = max((int) (mod/(2.0*rho)), 1);
+    // printf("There are %d bins given mod %4f and 2r %4f\n",num_bins, mod, 2*rho );
 
-    int w_index = (int) (p.x / (2*rho));
-    int h_index = (int) (p.y / (2*rho));
-    int t_index = (int) (p.z / (2*rho));
+    int w_index = (int) ((p.x - x_min)/ (2*rho));
+    int h_index = (int) ((p.y - y_min)/ (2*rho));
+    int t_index = (int) ((p.z - z_min)/ (2*rho));
+
+
+    printf("QUERY: wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
     int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
+    printf("QUERY: Computed hash is %d\n", hash);
 
     std::vector<VertexIter>  * vec = new std::vector<VertexIter >();
-    for (double i = -(num_bins)*(num_bins); i<=  (num_bins)*( num_bins); i +=  (num_bins)*(num_bins)) {
-      for (int j = -( num_bins); j <= (num_bins); j += (num_bins)) {
-        for (int k = -1; k <= 1; k++) {
-          int next_hash = hash + i + j + k;
+    for (int i = max(0, w_index - 1); i <=  min(num_bins - 1, w_index + 1); i +=  1) {
+      for (int j = max(0, h_index - 1); j <=  min(num_bins - 1, h_index + 1); j += 1) {
+        for (int k = max(0, t_index - 1); k <=  min(num_bins - 1, t_index + 1); k++) {
+
+          int next_hash = num_bins * num_bins * i + num_bins * j + k;
+          printf("next hash is %d\n", next_hash);
           if (map.find(next_hash) != map.end()) {
+            printf("Pushing back voxel at %d %d %d\n",i,j,k );
+            printf("To get a hash value %d with voxel size %zu \n",next_hash, (*map[next_hash]).size() );
             for (VertexIter ver : *map[next_hash]) {
               vec->push_back(ver);
             }
@@ -638,7 +646,7 @@ namespace CGL
     //and computes the vertex which when touched will make ensure no other vertices are in the ball
     //Cannot fail on the inside half edge, as it is a well formed triangle via our seed or algorithm prior.
   bool pivot_from( HalfedgeIter inside_halfedge, double rho, VertexIter& populate, MeshResampler* meshR) {
-    printf("pivotting from\n");
+    printf("pivoting from an inside halfedge\n");
     Vector3D sigma_i = inside_halfedge->vertex()->position;
     Vector3D sigma_j = inside_halfedge->next()->vertex()->position;
     Vector3D m = 0.5*(sigma_i + sigma_j);
@@ -689,16 +697,54 @@ namespace CGL
             }
             dist_from_center = (other->position - *cx).norm();
             if (dist_from_center < rho - 0.00001) {
+              // printf("A vertex is inside the containing sphere\n");
               valid_flag = false; //flag that too we cannot use this vertex, as another vertex is inside the ball;
               break;
             }
           }
-
           if (valid_flag) { //Ball is touching three points exactly, add v to candidate centers
             // printf("We made a candidate vertex\n");
             candidate_centers.push_back(cx);
             // printf("Candidate center placed at %4f %4f %4f \n", cx->x, cx->y, cx->z);
+            // circumsphere_center(sigma_i, sigma_j, v->position, rho, *cx);
 
+            // printf("sigma_i at: %4f %4f %4f\n", sigma_i.x, sigma_i.y, sigma_i.z);
+            // printf("sigma_j at: %4f %4f %4f\n", sigma_j.x, sigma_j.y, sigma_j.z);
+            // printf("candidate vertex at: %4f %4f %4f\n", v->position.x, v->position.y, v->position.z);
+            // printf("Candidate center sanity check at %4f %4f %4f \n", cx->x, cx->y, cx->z);
+            candidate_vertices.push_back(v);
+          }
+        } else if (circumsphere_center(sigma_i, v->position, sigma_j, rho, *cx)) {
+          printf("Alternate circumcenter worked!\n");
+          // printf("\n");
+          // printf("Sanity check that at least three points are touching here\n");
+          // printf("rho: %4f\n", rho);
+          // printf("center sphere: %4f %4f %4f\n", cx->x, cx->y, cx->z);
+          // printf("sigma_i: %4f %4f %4f -> %4f\n", sigma_i.x, sigma_i.y, sigma_i.z, (sigma_i - *cx).norm() );
+          // printf("sigma_j: %4f %4f %4f -> %4f\n", sigma_j.x, sigma_j.y, sigma_j.z, (sigma_j - *cx).norm());
+          // printf("candidate vertex: %4f %4f %4f -> %4f\n", v->position.x, v->position.y, v->position.z, (v->position - *cx).norm());
+          // printf("\n");
+          bool valid_flag  = true;
+          double dist_from_center;
+          for (VertexIter other : rho_closest) {
+            if (other->position.x == sigma_i.x && other->position.y == sigma_i.y && other->position.z == sigma_i.z ) {
+              continue;
+            } else if (other->position.x == sigma_j.x && other->position.y == sigma_j.y && other->position.z == sigma_j.z ) {
+              continue;
+            } else if (other->position.x == v->position.x && other->position.y == v->position.y && other->position.z == v->position.z ) {
+               continue;
+            }
+            dist_from_center = (other->position - *cx).norm();
+            if (dist_from_center < rho - 0.00001) {
+              printf("A vertex is inside the containing sphere\n");
+              valid_flag = false; //flag that too we cannot use this vertex, as another vertex is inside the ball;
+              break;
+            }
+          }
+          if (valid_flag) { //Ball is touching three points exactly, add v to candidate centers
+            // printf("We made a candidate vertex\n");
+            candidate_centers.push_back(cx);
+            // printf("Candidate center placed at %4f %4f %4f \n", cx->x, cx->y, cx->z);
             // circumsphere_center(sigma_i, sigma_j, v->position, rho, *cx);
 
             // printf("sigma_i at: %4f %4f %4f\n", sigma_i.x, sigma_i.y, sigma_i.z);
@@ -717,6 +763,7 @@ namespace CGL
       3D circle gamma with radius rho centered at m*/
 
     if (candidate_centers.size() == 0) {
+      printf("No candidate centers found.\n");
       return false;
     }
 
@@ -746,7 +793,7 @@ namespace CGL
 
 
       printf("Trying to match best_t with best_vertex_sofar\n");
-      printf("3*PI is %4f and the candidate_t is %4f\n", 3*PI, candidate_t);
+      printf("3*PI is %4f and the candidate_t is %4f, with sin_theta:%4f cos: %4f\n", 3*PI, candidate_t, sin_theta, cos_theta);
       if (candidate_t < best_t_sofar) {
 
         best_t_sofar = candidate_t;
@@ -768,8 +815,8 @@ namespace CGL
     HalfedgeIter hIter = h.twin()->twin();
 
     set_rho(mesh, 0.4);
-    cluster_vertices(mesh);
 
+    cluster_vertices(mesh);
     return pivot_from(hIter, rho, populate, this);
   }
 
@@ -1032,7 +1079,9 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
       HalfedgeIter i1 = this->newHalfedge();
       HalfedgeIter i2 = this->newHalfedge();
       EdgeIter e1 = this->newEdge();
+      e1->BPisActive = true;
       EdgeIter e2 = this->newEdge();
+      e2->BPisActive = true;
       e1->halfedge() = i1;
       e2->halfedge() = i2;
       FaceIter f = this->newFace();
@@ -1124,9 +1173,31 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           h = h->twin()->next();} while( h != beta->halfedge() );
 
       if ((k_to_a) && (b_to_k)) {
-        /*Just need to assign a face*/
+        /*Need to assign a face, and check that the outside is well shaped too*/
         FaceIter f = this->newFace();
         f->halfedge() = insideFront->twin();
+
+        HalfedgeIter k_pred;
+        bool found_kpred = false;
+        HalfedgeIter h = k_a;
+        do {
+          if (h->twin()->next() == k_a) {
+            k_pred = h->twin();
+            found_kpred = true;
+            break;
+          }
+          h = h->twin()->next();} while( h != k_a );
+        if (!found_kpred) {
+          printf("Failed to extend front due to malformed halfedges (1.5)\n");
+          return false;
+        } else if (k_pred != b_k) { /*need to fix the outsides to pass over instead of come inside*/
+           k_pred->setNeighbors( b_k->next(),
+                            k_pred->twin(),
+                            k_pred->vertex(),
+                            k_pred->edge(),
+                            k_pred->face());
+        }
+
         k_a->setNeighbors( insideFront->twin(),
                             k_a->twin(),
                             k,
@@ -1137,19 +1208,190 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                             alpha,
                             insideFront->edge(),
                             f);
-        b_k->twin()->setNeighbors( k_a,
+        b_k->setNeighbors( k_a,
                             b_k->twin(),
                             beta,
                             b_k->edge(),
                             f);
         return true;
+      } else if (k_to_a) {/*need to linearize k_a predecessor, 4 halfedges involved*/
+        HalfedgeIter k_pred;
+        bool found_kpred = false;
+        HalfedgeIter h = k_a;
+        do {
+          if (h->twin()->next() == k_a) {
+            k_pred = h->twin();
+            found_kpred = true;
+            break;
+          }
+          h = h->twin()->next();} while( h != k_a );
+        if (!found_kpred) {
+          printf("Failed to extend front due to malformed halfedges (2)\n");
+          return false;
+        } else {
+          HalfedgeIter o2 = this->newHalfedge();
+          HalfedgeIter i2 = this->newHalfedge();
+          HalfedgeIter b_succ = insideFront->twin()->next();
+          FaceIter f = this->newFace();
+          f->halfedge() = i2;
+          FaceIter boundaryFace1 = this->newBoundary();
+          boundaryFace1->halfedge() = o2;
+          EdgeIter e2 = this->newEdge();
+          e2->BPisActive = true;
+          e2->halfedge() = i2;
+
+          o2->setNeighbors( b_succ,
+                            i2,
+                            k,
+                            e2,
+                            boundaryFace1);
+
+          i2->setNeighbors( k_a,
+                            o2,
+                            beta,
+                            e2,
+                            f);
+
+          insideFront->twin()->setNeighbors( i2,
+                            insideFront,
+                            alpha,
+                            insideFront->edge(),
+                            f);
+
+          k_pred->setNeighbors( o2,
+                            k_pred->twin(),
+                            k_pred->vertex(),
+                            k_pred->edge(),
+                            k_pred->face());
+          return true;
+        }
+      } else if (b_to_k) {/*need to linearize a_k predecessor, 4 halfedges involved*/
+        /*Compute a's predecessor*/
+        HalfedgeIter a_pred;
+        bool found_apred = false;
+        HalfedgeIter h = alpha->halfedge();
+        do {
+          if (h->twin()->next() == insideFront->twin()) {
+            a_pred = h->twin();
+            found_apred = true;
+            break;
+          }
+          h = h->twin()->next();} while( h != alpha->halfedge() );
+        if (!found_apred) {
+          printf("Failed to extend front due to malformed halfedges (3)\n");
+          return false;
+        }
+
+        HalfedgeIter o1 = this->newHalfedge();
+        HalfedgeIter i1 = this->newHalfedge();
+        EdgeIter e1 = this->newEdge();
+        e1->BPisActive = true;
+        e1->halfedge() = i1;
+        FaceIter f = this->newFace();
+        f->halfedge() = i1;
+        FaceIter boundaryFace1 = this->newBoundary();
+        boundaryFace1->halfedge() = o1;
+
+        o1->setNeighbors( b_k->next(),
+                            i1,
+                            alpha,
+                            e1,
+                            boundaryFace1);
+
+        i1->setNeighbors( insideFront->twin(),
+                            o1,
+                            k,
+                            e1,
+                            f);
+
+        a_pred->setNeighbors( o1,
+                            a_pred->twin(),
+                            a_pred->vertex(),
+                            a_pred->edge(),
+                            a_pred->face());
+
+        b_k->setNeighbors( i1,
+                            b_k->twin(),
+                            beta,
+                            b_k->edge(),
+                            f);
+        return true;
+      } else { /*we are iceberging the wall that k is on, no need to mess with the outside edges yet*/
+
+        /*Compute a's predecessor*/
+        HalfedgeIter a_pred;
+        bool found_apred = false;
+        HalfedgeIter h = alpha->halfedge();
+        do {
+          if (h->twin()->next() == insideFront->twin()) {
+            a_pred = h->twin();
+            found_apred = true;
+            break;
+          }
+          h = h->twin()->next();} while( h != alpha->halfedge() );
+        if (!found_apred) {
+          printf("Failed to extend front due to malformed halfedges (4)\n");
+          return false;
+        }
+
+        HalfedgeIter o1 = this->newHalfedge();
+        HalfedgeIter i1 = this->newHalfedge();
+        HalfedgeIter o2 = this->newHalfedge();
+        HalfedgeIter i2 = this->newHalfedge();
+        HalfedgeIter b_succ = insideFront->twin()->next();
+
+
+        EdgeIter e1 = this->newEdge();
+        e1->halfedge() = i1;
+        e1->BPisActive = true;
+        EdgeIter e2 = this->newEdge();
+        e2->halfedge() = i2;
+        e2->BPisActive = true;
+        FaceIter f = this->newFace();
+        f->halfedge() = i1;
+        FaceIter boundaryFace1 = this->newBoundary();
+        boundaryFace1->halfedge() = o1;
+        FaceIter boundaryFace2 = this->newBoundary();
+        boundaryFace2->halfedge() = o1;
+
+        i1->setNeighbors( insideFront->twin(),
+                          o1,
+                          k,
+                          e1,
+                          f);
+
+        i2->setNeighbors( i1,
+                          o2,
+                          beta,
+                          e2,
+                          f);
+
+        insideFront->twin()->setNeighbors( i2,
+                          insideFront,
+                          alpha,
+                          insideFront->edge(),
+                          f);
+
+        o1->setNeighbors( o2,
+                          i1,
+                          alpha,
+                          e1,
+                          boundaryFace1);
+
+        o2->setNeighbors( b_succ,
+                          i2,
+                          k,
+                          e2,
+                          boundaryFace2);
+
+        a_pred->setNeighbors( o1,
+                  a_pred->twin(),
+                  a_pred->vertex(),
+                  a_pred->edge(),
+                  a_pred->face());
+        return true;
       }
-      return false;
     }
-
-
-
-
     return false;
   }
 
@@ -1173,6 +1415,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
             Vector3D normal_orientation;
             bool orientable = false;
             if (circumsphere_center(sigma->position , sigma_alpha->position, sigma_beta->position, rho, ball_center)) { /*A sphere can be computed from these three*/
+              printf("A sphere can be placed on the found vertices\n");
               normal_orientation = sigma->norm + sigma_alpha->norm + sigma_beta->norm;
               if (dot(normal_orientation, ball_center - ((sigma->position + sigma_alpha->position + sigma_beta->position) * 1.0/3.0)) > 0.0)  {
                 orientable = true;
@@ -1185,6 +1428,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
             }
 
             if (orientable) {/*We proceed with the ball center populated, and compute if this is a valid configuration*/
+              printf("And they are orientable\n");
+
               bool valid_flag  = true;
               double dist_from_center;
               for (VertexIter other : accel_struct) {
@@ -1216,37 +1461,37 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     return false;
   }
 
-  HalfedgeIter MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
-    set_rho(mesh, 0.25);
+  std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
+    set_rho(mesh, .20);
     //TODO clear everything!
-    // std::vector<EdgeIter> b1;
-    // for( EdgeIter e = mesh.edgesBegin(); e != mesh.edgesEnd(); e++ ) {
-    //   b1.push_back(e);
-    // }
-    // for( EdgeIter e : b1 ) {
-    //   mesh.deleteEdge(e);
-    // }
-    // std::vector<HalfedgeIter> b2;
-    // for( HalfedgeIter e = mesh.halfedgesBegin(); e != mesh.halfedgesBegin(); e++ ) {
-    //   b2.push_back(e);
-    // }
-    // for( HalfedgeIter e : b2 ) {
-    //   mesh.deleteHalfedge(e);
-    // }
-    // std::vector<FaceIter> b3;
-    // for( FaceIter e = mesh.facesBegin(); e != mesh.facesEnd(); e++ ) {
-    //   b3.push_back(e);
-    // }
-    // for( FaceIter e : b3 ) {
-    //   mesh.deleteFace(e);
-    // }
+    std::vector<EdgeIter> b1;
+    for( EdgeIter e = mesh.edgesBegin(); e != mesh.edgesEnd(); e++ ) {
+      b1.push_back(e);
+    }
+    for( EdgeIter e : b1 ) {
+      mesh.deleteEdge(e);
+    }
+    std::vector<HalfedgeIter> b2;
+    for( HalfedgeIter e = mesh.halfedgesBegin(); e != mesh.halfedgesBegin(); e++ ) {
+      b2.push_back(e);
+    }
+    for( HalfedgeIter e : b2 ) {
+      mesh.deleteHalfedge(e);
+    }
+    std::vector<FaceIter> b3;
+    for( FaceIter e = mesh.facesBegin(); e != mesh.facesEnd(); e++ ) {
+      b3.push_back(e);
+    }
+    for( FaceIter e : b3 ) {
+      mesh.deleteFace(e);
+    }
 
 
     //TODO compute the radius list we want by doing some statistics on the points
     //TODO build a mesh acceleration structure (voxel grid), so that we can look at a vertices nearest neighbors
     //TODO Iterating from smallest rho to largest
-      std::vector<VertexIter> dummy_accel_struct;
       std::deque<VertexIter> unused_vertices;
+      std::vector<VertexIter> frozen_vertices;
       std::deque<EdgeIter> active_edges;
       std::deque<EdgeIter> front_edges;
 
@@ -1254,140 +1499,173 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
       for( VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++ ) {
         v->BPisUsed = false;
         unused_vertices.push_back(v);
-        dummy_accel_struct.push_back(v);
       }
 
-      //TODO Loop on compute a seed triangle
-      VertexIter candidate_sigma;
-      bool seedFound = false;
-      VertexIter sigma_alpha;
-      VertexIter sigma_beta;
-      while (!(seedFound) && unused_vertices.size() > 0) {
-        bool candidate_found = false;
-        /*Use voxel accel struct to get the closest points here*/
-        while (unused_vertices.size() > 0) {
-          candidate_sigma = unused_vertices.front();
-          printf("Candidate suggested\n");
-          unused_vertices.pop_front();
-          if ((candidate_sigma->BPisUsed)) {
-            printf("But continued\n");
-            continue;
-          } else {
-            candidate_found = true;
-            break;
+      while (true) {
+        //TODO Loop on compute a seed triangle
+        VertexIter candidate_sigma;
+        bool seedFound = false;
+        VertexIter sigma_alpha;
+        VertexIter sigma_beta;
+        while (!(seedFound) && unused_vertices.size() > 0) {
+          bool candidate_found = false;
+          /*Use voxel accel struct to get the closest points here*/
+          while (unused_vertices.size() > 0) {
+            candidate_sigma = unused_vertices.front();
+            printf("Candidate suggested\n");
+            unused_vertices.pop_front();
+            if ((candidate_sigma->BPisUsed)) {
+              printf("But continued\n");
+              continue;
+            } else {
+              candidate_found = true;
+              break;
+            }
+          }
+
+          if (candidate_found) {
+            printf("Candidate_found\n");
+            seedFound = computeSeedTriangleGivenPoint(candidate_sigma, get_neighbors(candidate_sigma->position), rho, sigma_alpha, sigma_beta);
+            if (!(seedFound)) {
+              frozen_vertices.push_back(candidate_sigma);
+            }
           }
         }
 
-        if (candidate_found) {
-          printf("Candidate_found\n");
-          seedFound = computeSeedTriangleGivenPoint(candidate_sigma, get_neighbors(candidate_sigma->position), rho, sigma_alpha, sigma_beta);
+        if (seedFound) {
+          printf("Seed triangle point found, assimilating it to the mesh we have now\n");
+          mesh.createSeedTriangle(candidate_sigma, sigma_alpha, sigma_beta);
+          EdgeIter e1 = candidate_sigma->halfedge()->edge();
+          EdgeIter e2 = sigma_alpha->halfedge()->edge();
+          EdgeIter e3 = sigma_beta->halfedge()->edge();
+          active_edges.push_back(e1);
+          active_edges.push_back(e2);
+          active_edges.push_back(e3);
+          e1->BPisActive = true;
+          e1->BPisBoundary = false;
+          e2->BPisActive = true;
+          e2->BPisBoundary = false;
+          e3->BPisActive = true;
+          e3->BPisBoundary = false;
+          candidate_sigma->BPisUsed = true;
+          sigma_alpha->BPisUsed = true;
+          sigma_beta->BPisUsed = true;
+
+          printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
+          printf("returned correctly\n");
+        } else {
+          /*We must try another rho or kill the floating vertices and call it done*/
+          break;
         }
-      }
 
-      if (seedFound) {
-        printf("Seed triangle point found, assimilating it to the mesh we have now\n");
-        mesh.createSeedTriangle(candidate_sigma, sigma_alpha, sigma_beta);
-        EdgeIter e1 = candidate_sigma->halfedge()->edge();
-        EdgeIter e2 = sigma_alpha->halfedge()->edge();
-        EdgeIter e3 = sigma_beta->halfedge()->edge();
-        active_edges.push_back(e1);
-        active_edges.push_back(e2);
-        active_edges.push_back(e3);
-        front_edges.push_back(e1);
-        front_edges.push_back(e2);
-        front_edges.push_back(e3);
-        e1->BPisActive = true;
-        e1->BPisBoundary = false;
-        e2->BPisActive = true;
-        e2->BPisBoundary = false;
-        e3->BPisActive = true;
-        e3->BPisBoundary = false;
-        candidate_sigma->BPisUsed = true;
-        sigma_alpha->BPisUsed = true;
-        sigma_beta->BPisUsed = true;
-
-        printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
-        printf("returned correctly\n");
-      } else {
-        /*We must try another rho or kill the floating vertices and call it done*/
-      }
-
-      //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
-      /*Use voxel accel struct to get the closest points here*/
-      while (active_edges.size() > 0) {
-
-        bool active_edge_found = false;
-        EdgeIter candidate_active_edge;
+        //TODO compute the "active" edge e, or edge on the fringe that we must pivot over
+        /*Use voxel accel struct to get the closest points here*/
 
         while (active_edges.size() > 0) {
-          candidate_active_edge = active_edges.front();
-          printf("Active Edge Candidate suggested\n");
-          active_edges.pop_front();
-          if ((candidate_active_edge->BPisActive)) {
-            active_edge_found = true;
-            candidate_active_edge->BPisActive = false;
-            break;
-          } else {
-            printf("But continued\n");
-            continue;
-          }
-        }
 
-        if (active_edge_found) {
-            printf("Active Edge Candidate_found\n");
+          bool active_edge_found = false;
+          EdgeIter candidate_active_edge;
 
-          //TODO not_used(), not_internal
-          // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
-            VertexIter k;
-            if (pivot_from( candidate_active_edge->halfedge(), rho, k, this)) {
-              printf("Pivoted to populate k, now going to check receiving point validity!\n");
-              if (!(k->BPisUsed) || (k->halfedge()->edge()->BPisActive || k->halfedge()->edge()->BPisBoundary)) {
-                printf("Found a vertex k to incorporate!\n");
-                //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
-                // 4. output triangle(i,  k , j )
-                mesh.createFrontTriangle(candidate_active_edge->halfedge(), k);
-
-                //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing
-                  //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
-                // 5. join(e(i,j) , k , F)
-
-              } else {
-                printf("Marked the edge as boundary due to resulting mesh not being manifold\n");
-                candidate_active_edge->BPisBoundary = true;
-              }
+          while (active_edges.size() > 0) {
+            candidate_active_edge = active_edges.front();
+            printf("Active Edge Candidate suggested\n");
+            active_edges.pop_front();
+            if ((candidate_active_edge->BPisActive)) {
+              active_edge_found = true;
+              candidate_active_edge->BPisActive = false;
+              break;
             } else {
-                printf("Marked the edge as boundary due to ball making it around to other side\n");
-                candidate_active_edge->BPisBoundary = true;
+              printf("But continued\n");
+              continue;
             }
+          }
 
-          // 8 . else
+          int iterCount = 0;
+          if (active_edge_found) {
+              printf("Active Edge Candidate_found\n");
 
-            // TODO function mark an edge as a fixed boundary
-            // 9 . mark as boundary(e(i;j))
-        }
-      }
+            //TODO not_used(), not_internal
+            // 3. if (Vertex k = pivot(e) && ( not_used(k) || not_internal(k) ) )
+              VertexIter k;
+              if (pivot_from( candidate_active_edge->halfedge(), rho, k, this)) {
+                printf("Pivoted to populate k, now going to check receiving point validity!\n");
+                if (!(k->BPisUsed) || (k->halfedge()->edge()->BPisActive || k->halfedge()->edge()->BPisBoundary)) {
+                  printf("Found a vertex k to incorporate!\n");
+                  //TODO, function that reassigns half edge pointers, edge pointers, face pointers, to make a triangle
+                  // 4. output triangle(i,  k , j )
+                  HalfedgeIter insideFront = candidate_active_edge->halfedge();
+                  if (mesh.createFrontTriangle(insideFront, k)) {
+                    EdgeIter e1 = insideFront->twin()->next()->edge();
+                    EdgeIter e2 = e1->halfedge()->next()->edge();
+
+                    if (e1->BPisActive) {
+                      active_edges.push_back(e1);
+                    }
+
+                    if (e2->BPisActive) {
+                      active_edges.push_back(e2);
+                    }
+
+                    k->BPisUsed = true;
+
+                    printf("Candidate Sigma is here: %4f %4f %4f \n", candidate_sigma->position.x, candidate_sigma->position.y, candidate_sigma->position.z);
+                    printf("returned correctly\n");
+
+                    if (iterCount >= 10)
+                      return frozen_vertices;
+                    }
+                    iterCount++;
 
 
-    Vector3D i = Vector3D(123, 456 , 789);
-    Vector3D j = Vector3D(666,66,6);
-    Vector3D o = Vector3D(34, 43.24, -3422.0321);
-    Vector3D *c = new Vector3D();
+                  } else {
+                    printf("Ball iteration terminated in a bad spot.\n");
+                  }
 
-    circumsphere_center( i, j, o, 234556, *c);
+                  //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing
+                    //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
+                  // 5. join(e(i,j) , k , F)
 
-    printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
-    printf("Distance from i is : %4f\n", (i-*c).norm());
-    printf("Distance from j is : %4f\n", (j-*c).norm());
-    printf("Distance from o is : %4f\n", (o-*c).norm());
+              // 8 . else
+
+              // TODO function mark an edge as a fixed boundary
+              // 9 . mark as boundary(e(i;j))
+                } else {
+                  printf("Marked the edge as boundary due to resulting mesh not being manifold\n");
+                  candidate_active_edge->BPisBoundary = true;
+                  front_edges.push_back(candidate_active_edge);
+                }
+              } else {
+                  printf("Marked the edge as boundary due to ball making it around to other side\n");
+                  candidate_active_edge->BPisBoundary = true;
+                  front_edges.push_back(candidate_active_edge);
+              }
+          }
+
+    }
+
+    printf("BPA all done\n");
+    return frozen_vertices;
+
+    // Vector3D i = Vector3D(123, 456 , 789);
+    // Vector3D j = Vector3D(666,66,6);
+    // Vector3D o = Vector3D(34, 43.24, -3422.0321);
+    // Vector3D *c = new Vector3D();
+
+    // circumsphere_center( i, j, o, 234556, *c);
+
+    // printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
+    // printf("Distance from i is : %4f\n", (i-*c).norm());
+    // printf("Distance from j is : %4f\n", (j-*c).norm());
+    // printf("Distance from o is : %4f\n", (o-*c).norm());
 
 
-    circumsphere_center( i, o, j, 234556, *c);
+    // circumsphere_center( i, o, j, 234556, *c);
 
-    printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
-    printf("Distance from i is : %4f\n", (i-*c).norm());
-    printf("Distance from j is : %4f\n", (j-*c).norm());
-    printf("Distance from o is : %4f\n", (o-*c).norm());
-    return candidate_sigma->halfedge();
+    // printf("Circumsphere center is : %4f %4f %4f\n", c->x, c->y, c->z);
+    // printf("Distance from i is : %4f\n", (i-*c).norm());
+    // printf("Distance from j is : %4f\n", (j-*c).norm());
+    // printf("Distance from o is : %4f\n", (o-*c).norm());
+    // return candidate_sigma->halfedge();
 
   }
 
