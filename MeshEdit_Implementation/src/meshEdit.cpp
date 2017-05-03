@@ -1023,15 +1023,19 @@ namespace CGL {
                       mesh = &( meshNodes.begin()->mesh );
                     }
 
+                                 selectedFeature.invalidate();
+                    hoveredFeature.invalidate();
+                    resampler.max_count += 1;
+
                     HalfedgeIter v;
-                     floating_vertices = resampler.ball_pivot(*mesh, v, current_faces);
-                     printf("BPA DONE\n");
+                    floating_vertices = resampler.ball_pivot(*mesh, v, current_faces, resampler.max_count);
+                    printf("BPA DONE\n");
 
                     // Since the mesh may have changed, the selected and
                     // hovered features may no longer point to valid elements.
-                    // selectedFeature.invalidate();
-                    // hoveredFeature.invalidate();
+                    // printf("selected\n");
                     // selectedFeature.element = elementAddress( v );
+                    // printf("done\n");
                   }
 
                   inline void MeshEdit::drawString(float x, float y, string str, size_t size, Color c)
@@ -1305,6 +1309,9 @@ namespace CGL {
                         }
                         glEnable(GL_LIGHTING);
                         for (FaceIter f : current_faces) {
+                          if (f->isBoundary()) {
+                            continue;
+                          }
                           // These guys prevent z fighting / prevents the faces from bleeding into the edge lines and points.
                           glEnable(GL_POLYGON_OFFSET_FILL);
                           glPolygonOffset( 1.0, 1.0 );

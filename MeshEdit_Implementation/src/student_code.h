@@ -19,7 +19,7 @@ namespace CGL {
 
     void upsample(HalfedgeMesh& mesh);
 
-    std::vector<VertexIter> ball_pivot(HalfedgeMesh& mesh, HalfedgeIter& populate,std::vector<FaceIter> &current_faces);
+    std::vector<VertexIter> ball_pivot(HalfedgeMesh& mesh, HalfedgeIter& populate,std::vector<FaceIter> &current_faces, int max_count);
 
     bool calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate);
     double set_rho(HalfedgeMesh& mesh, double rho);
@@ -35,6 +35,7 @@ namespace CGL {
     double z_max;
     double mod;
     double rho;
+    int max_count = 0;
   };
 }
 
