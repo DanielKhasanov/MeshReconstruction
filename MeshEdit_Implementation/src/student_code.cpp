@@ -529,8 +529,8 @@ namespace CGL
         if (pos.y < y_min) {y_min = pos.y;}
         if (pos.z < z_min) {z_min = pos.z;}
         if (pos.x > x_max) {x_max = pos.x;}
-        if (pos.y < y_max) {y_max = pos.y;}
-        if (pos.z < z_max) {z_max = pos.z;}
+        if (pos.y > y_max) {y_max = pos.y;}
+        if (pos.z > z_max) {z_max = pos.z;}
       }
     }
     // printf("Done iterating\n");
@@ -815,7 +815,6 @@ namespace CGL
   bool MeshResampler::calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate) {
     HalfedgeIter hIter = h.twin()->twin();
 
-
     set_rho(mesh, 2.0);
     // cluster_vertices(mesh);
     return pivot_from(hIter, rho, populate, this);
@@ -912,12 +911,39 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     double r = mod/3.0;
     int count = 0;
     unordered_map<int, vector<VertexIter > *> m;
-    while (count < 25) {
-      for (const auto &entry : map) {
+    int c = 0;
+    int num_bins = max((int) (mod/(2.0*r)), 1) ;
+    for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
+      c++;
+      if (c >= 20) {
+        break;
+      }
+      Vector3D p = v->position;
+      int w_index = (int) (p.x / (2*r));
+      int h_index = (int) (p.y / (2*r));
+      int t_index = (int) (p.z / (2*r));
+
+      // printf("wi, hi, ti is %d %d %d\n",w_index, h_index, t_index );
+      int hash = num_bins * num_bins * w_index + num_bins * h_index + t_index;
+      // printf("Computed hash is %d\n", hash);
+
+      if (m.find(hash) == m.end()) {
+        std::vector<VertexIter > * vec = new std::vector<VertexIter >();
+        m[hash] = vec;
+        count++;
+      }
+
+      m[hash]->push_back(v);
+    }
+    if (c < 20) {
+      return m;
+    }
+    while (count < 20) {
+      for (const auto &entry : m) {
         delete(entry.second);
       }
       // printf("Deleted entries\n");
-      map.clear();
+      m.clear();
       count = 0;
       r = r/2.0;
       int num_bins = max((int) (mod/(2.0*r)), 1) ;
@@ -938,8 +964,10 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           m[hash] = vec;
           count++;
         }
+
         m[hash]->push_back(v);
       }
+      printf("%d and %4f\n", count, r);
     }
     // printf("The number of large voxels is %d\n", count);
     // printf("The rho used is %4f\n", r);
@@ -1268,7 +1296,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                             k_pred->face());
           // printf("Integrated a_to_k puzzle piece\n");
           return true;
-        } 
+        }
       } else if (b_to_k) {/*need to linearize a_k predecessor, 4 halfedges involved*/
         /*Compute a's predecessor*/
         HalfedgeIter a_pred;
@@ -1471,7 +1499,16 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
   }
 
   std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
-    set_rho(mesh, 0.05);
+    set_rho(mesh, 1.5);
+
+    for (const auto &entry : map) {
+      std::vector<VertexIter> neighbors = get_neighbors( ((*entry.second)[0])->position ) ;
+      for (VertexIter v : *entry.second) {
+        normal_at_point(v->position, neighbors, v->norm);
+        v->norm = v->norm.norm();
+      }
+    }
+
     //TODO clear everything!
     std::vector<EdgeIter> b1;
     for( EdgeIter e = mesh.edgesBegin(); e != mesh.edgesEnd(); e++ ) {
@@ -1646,17 +1683,13 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                   }
 
                 } else {
-                  // printf("The point was invalid, marking as boundary\n");
-                
+                  // printf("The point was invalid, marking as boundary\n");               
                 //TODO join(e, ek1, ek2), which takes in an old edge, and two new edges, marks the old as internal and the new as FRONT, luckily for us, we do not need to worry about glueing
                   //here because a vertex will just overwrite its edge pointers, and half edges are expected to be opposite facing
                 // 5. join(e(i,j) , k , F)
-
             // 8 . else
-
             // TODO function mark an edge as a fixed boundary
             // 9 . mark as boundary(e(i;j))
-              
                 // printf("Marked the edge as boundary due to resulting mesh not being manifold\n");
                 candidate_active_edge->BPisBoundary = true;
                 front_edges.push_back(candidate_active_edge);
@@ -1667,8 +1700,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                 front_edges.push_back(candidate_active_edge);
             }
           }
-        
-     }
+        }
     }
 
     // printf("BPA all done\n");
