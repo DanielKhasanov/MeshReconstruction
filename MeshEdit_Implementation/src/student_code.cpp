@@ -514,6 +514,8 @@ namespace CGL
     double limit = 20;
     rho = newRho;
     printf("Rho is now %4f\n", rho);
+    double count;
+    double n;
     do {
       flag2 = true;
       for (const auto &entry : map) {
@@ -578,20 +580,21 @@ namespace CGL
         }
         map[hash]->push_back(v);
       }
-      double count = 0.0;
-      double n = 0;
+      count = 0.0;
+      n = 0;
       for (const auto &entry : map) {
         // printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
-        count += entry.second;
+        count += entry.second->size();
         n++;
-        if (entry.second->size < 3) {
+        if (entry.second->size() < 3) {
           freePass = true;
           flag2 = false;
         }
       }
+      printf("Rho is currently %4f", rho);
       if ((freePass && flag2) || (double) count/(double) n < limit) {
         flag = true;
-      } else if (freepass) {
+      } else if (freePass) {
         rho = rho * 1.25;
       } else {
         rho = rho * 0.75;
@@ -604,7 +607,8 @@ namespace CGL
     //   // printf("voxel {%d} has %zu entries\n", entry.first, entry.second->size());
     //   count++;
     // }
-
+    printf("Rho is set to %4f", rho);
+    printf("Average number of vertices per voxel: %4f",(double) count/(double) n );
 
     return rho;
   }
