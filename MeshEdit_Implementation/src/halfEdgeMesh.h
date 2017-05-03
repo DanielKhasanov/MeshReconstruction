@@ -401,6 +401,7 @@ namespace CGL
           * \returns a unit face normal (computed via the area vector).
           */
          Vector3D normal( void ) const;
+         bool isSeed;
 
          Matrix4x4 quadric;
 

@@ -735,7 +735,7 @@ namespace CGL
     }
 
     printf("cijo is the vector %4f %4f %4f\n", (c_ijo).x, (c_ijo).y, (c_ijo).z);
-    printf("m is the vector %4f %4f %4f\n", m.x, m.y, m.z);  
+    printf("m is the vector %4f %4f %4f\n", m.x, m.y, m.z);
     Vector3D m_cijo = c_ijo - m;
     printf("m_cijo is the vector %4f %4f %4f\n", m_cijo.x, m_cijo.y,m_cijo.z);
 
@@ -820,12 +820,12 @@ namespace CGL
     int i = 0;
     // printf("cijo is the vector %4f %4f %4f\n", (c_ijo).x, (c_ijo).y, (c_ijo).z);
 
-    // printf("m is the vector %4f %4f %4f\n", m.x, m.y, m.z);  
+    // printf("m is the vector %4f %4f %4f\n", m.x, m.y, m.z);
     // Vector3D m_cijo = c_ijo - m;
     // printf("m_cijo is the vector %4f %4f %4f\n", m_cijo.x, m_cijo.y,m_cijo.z);
     for (Vector3D* candidate_center : candidate_centers) {
       printf("Candidate center reached at %4f %4f %4f \n", candidate_center->x, candidate_center->y, candidate_center->z);
-     
+
       Vector3D m_candidate = *candidate_center - m;
       double norm = (m_cijo.norm()*m_candidate.norm());
       double cos_theta = dot(m_cijo, m_candidate)/norm;
@@ -852,7 +852,7 @@ namespace CGL
         best_vertex_sofar = candidate_vertices[i];
         // printf("We did it, populating with the vertex at %4f %4f %4f\n", best_vertex_sofar->position.x, best_vertex_sofar->position.y, best_vertex_sofar->position.z);
       }
-      
+
       i++;
     }
 
@@ -1270,7 +1270,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           h = h->twin()->next();} while( h != alpha->halfedge() );
 
       HalfedgeIter h_p = beta->halfedge();
-      printf("%p\n", h_p);
+      // printf("%p\n", h_p);
       int iter = 0;
       do {
           if (h_p->twin()->vertex() == k) {
@@ -1283,14 +1283,14 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           h_p = h_p->twin()->next();
 
           printf("ttt\n");
-          iter++;          
+          iter++;
           } while( h_p != beta->halfedge() );
 
       if ((k_to_a) && (b_to_k)) {
         /*Need to assign a face, and check that the outside is well shaped too*/
         FaceIter f = this->newFace();
         f->halfedge() = insideFront->twin();
-        
+
         HalfedgeIter k_pred;
         bool found_kpred = false;
         HalfedgeIter h = k_a;
@@ -1703,6 +1703,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
           printf("Seed triangle point found, assimilating it to the mesh we have now\n");
           mesh.createSeedTriangle(candidate_sigma, sigma_alpha, sigma_beta);
           EdgeIter e1 = candidate_sigma->halfedge()->edge();
+          current_faces.push_back(candidate_sigma->halfedge()->face());
+          candidate_sigma->halfedge()->face()->isSeed = true;
           EdgeIter e2 = sigma_alpha->halfedge()->edge();
           EdgeIter e3 = sigma_beta->halfedge()->edge();
           active_edges.push_back(e1);
@@ -1766,6 +1768,8 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                   if (mesh.createFrontTriangle(insideFront, k)) {
                     printf("Triangle integrated, testing the edges\n");
                     EdgeIter e1 = insideFront->twin()->next()->edge();
+                    current_faces.push_back(insideFront->twin()->face());
+                    insideFront->twin()->face()->isSeed = false;
                     EdgeIter e2 = e1->halfedge()->next()->edge();
                     printf("Edges did not segmentation fault\n");
 

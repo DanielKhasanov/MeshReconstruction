@@ -1300,6 +1300,7 @@ namespace CGL {
                           glVertex3dv( &p2.x );
                           glEnd();
                         }
+                        glEnable(GL_LIGHTING);
                         for (FaceIter f : current_faces) {
                           // These guys prevent z fighting / prevents the faces from bleeding into the edge lines and points.
                           glEnable(GL_POLYGON_OFFSET_FILL);
@@ -1310,6 +1311,9 @@ namespace CGL {
 
                           // Coloring.
                           setElementStyle( elementAddress( f ) );
+                          if (f->isSeed) {
+                            setColor((&selectStyle)->vertexColor);
+                          }
 
                           // Start specifying the polygon.
                           glBegin(GL_POLYGON);
@@ -1338,6 +1342,9 @@ namespace CGL {
                           // Finish drawing the polygon.
                           glEnd();
                         }
+                        glDisable(GL_LIGHTING);
+                        drawEdges(mesh);
+                        drawHalfedges( mesh );
                       }
                       return;
                     }
