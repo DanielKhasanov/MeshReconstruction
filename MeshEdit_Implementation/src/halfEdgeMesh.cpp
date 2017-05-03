@@ -15,17 +15,28 @@ namespace CGL {
 
   Vector3D Face::normal( void ) const
   {
+    // printf("Inside norm calc\n");
     Vector3D N( 0., 0., 0. );
 
     HalfedgeCIter h = halfedge();
     do
     {
+      // printf("1\n");
+      h->vertex();
+      // printf("1.5\n");
+      // printf("position at %4f %4f %4f\n", h->vertex()->position.x, h->vertex()->position.y, h->vertex()->position.z  );
+      
+      // printf("1.75\n");
+
       Vector3D pi = h->vertex()->position;
+      // printf("2\n");
       Vector3D pj = h->next()->vertex()->position;
+      // printf("3\n");
 
       N += cross( pi, pj );
 
       h = h->next();
+      // printf("next\n");
     }
     while( h != halfedge() );
 
