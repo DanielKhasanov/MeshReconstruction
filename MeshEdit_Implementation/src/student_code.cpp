@@ -799,6 +799,12 @@ namespace CGL
       printf("BUT LO AND BEHOLD\n");
     }
 
+    if (dot(inside_halfedge->vertex()->norm + inside_halfedge->next()->vertex()->norm + inside_halfedge->next()->next()->vertex()->norm, c_ijo - ((sigma_i + sigma_j + sigma_o) * 1.0/3.0)) < 0.0)  {
+            // printf("Orientable originally\n");
+      circumsphere_center(sigma_i, sigma_o, sigma_j, rho, c_ijo);
+    }
+          
+
     // printf("cijo is the vector %4f %4f %4f\n", (c_ijo).x, (c_ijo).y, (c_ijo).z);
     // printf("m is the vector %4f %4f %4f\n", m.x, m.y, m.z);
     Vector3D m_cijo = c_ijo - m;
@@ -827,17 +833,7 @@ namespace CGL
 
         Vector3D cx;
 
-        // if (dot(normal_orientation, ball_center - ((sigma->position + sigma_alpha->position + sigma_beta->position) * 1.0/3.0)) < 0.0)  {
-        //         // printf("Orientable originally\n");
-        //         orientable = true;
-        //       } else if (circumsphere_center(sigma->position , sigma_beta->position, sigma_alpha->position, rho, ball_center)) {
-        //         // printf("Orientable when flipped\n");
-        //       /*The normal of the computed ball and triangle did not orient with the vertex normals, compute the counterpart ball isntead*/
-        //         flipped = true;
-        //         orientable = true;
-        //       } else {
-        //         orientable = false;
-        //       }
+
 
         if (circumsphere_center(sigma_i, sigma_j, v->position, rho, cx)) {
           // printf("\n");
@@ -848,7 +844,18 @@ namespace CGL
           // printf("sigma_j: %4f %4f %4f -> %4f\n", sigma_j.x, sigma_j.y, sigma_j.z, (sigma_j - *cx).norm());
           // printf("candidate vertex: %4f %4f %4f -> %4f\n", v->position.x, v->position.y, v->position.z, (v->position - *cx).norm());
           // printf("\n");
-          bool valid_flag  = true;
+
+          bool valid_flag = true;
+          if (!(dot(v->norm, cx - ((sigma_i + sigma_j + v->position) * 1.0/3.0)) > 0.0))  {
+            // printf("Orientable originally\n");
+              if (!(circumsphere_center(sigma_i , v->position, sigma_j, rho, cx))) {
+              // printf("Orientable when flipped\n");
+              /*The normal of the computed ball and triangle did not orient with the vertex normals, compute the counterpart ball isntead*/
+                valid_flag = false;
+                break;
+              }
+          }
+
           double dist_from_center;
           for (VertexIter other : rho_closest) {
             if (other->position.x == sigma_i.x && other->position.y == sigma_i.y && other->position.z == sigma_i.z ) {
@@ -1232,7 +1239,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     }
   }
 
-  bool HalfedgeMesh::createFrontTriangle(HalfedgeIter insideFront, VertexIter k) {
+  bool HalfedgeMesh::createFrontTriangle(HalfedgeIter insideFront, VertexIter k, FaceIter& populate) {
     /*In the case that k is not_used, we extend the front to include it
       in the case that k is on the front, we must check if it is already somehow connected to a or b
       If it is connected to one, we choose the to be internal halfedge. the predecessor will join on
@@ -1320,6 +1327,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                             a_pred->face());
 
       printf("Integrated a floating vertex\n");
+      populate = f;
       return true;
     } else {
       printf("Adding an semi incorporated vertex\n");
@@ -1400,6 +1408,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                             f);
 
         printf("Integrated a puzzle piece\n");
+        populate = f;
         return true;
       } else if (k_to_a) {/*need to linearize k_a predecessor, 4 halfedges involved*/
         HalfedgeIter k_pred;
@@ -1461,6 +1470,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                             k_a->edge(),
                             f);
           printf("Integrated a_to_k puzzle piece\n");
+          populate = f;
           return true;
         }
       } else if (b_to_k) {/*need to linearize a_k predecessor, 4 halfedges involved*/
@@ -1526,6 +1536,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                             b_k->twin()->face());
 
         printf("Integrated b_k inset face\n");
+        populate = f;
         return true;
       } else { /*we are iceberging the wall that k is on, no need to mess with the outside edges yet*/
 
@@ -1646,6 +1657,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
 
         k->halfedge() = i1;
         printf("Integrated an iceberg bridge\n");
+        populate = f;
         return true;
       }
       printf("Failed to integrate anything?\n");
@@ -1677,7 +1689,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
             if (circumsphere_center(sigma->position , sigma_alpha->position, sigma_beta->position, rho, ball_center)) { /*A sphere can be computed from these three*/
               // printf("A sphere can be placed on the found vertices\n");
               normal_orientation = sigma->norm + sigma_alpha->norm + sigma_beta->norm;
-              if (dot(normal_orientation, ball_center - ((sigma->position + sigma_alpha->position + sigma_beta->position) * 1.0/3.0)) < 0.0)  {
+              if (dot(normal_orientation, ball_center - ((sigma->position + sigma_alpha->position + sigma_beta->position) * 1.0/3.0)) > 0.0)  {
                 // printf("Orientable originally\n");
                 orientable = true;
               } else if (circumsphere_center(sigma->position , sigma_beta->position, sigma_alpha->position, rho, ball_center)) {
@@ -1790,7 +1802,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
       std::deque<EdgeIter> active_edges;
       std::deque<EdgeIter> front_edges;
 
-      //TODO create a queue of free vertices
+      //TODO create a queue of free verticesmax_count
       for( VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++ ) {
         v->BPisUsed = false;
         unused_vertices.push_back(v);
@@ -1898,10 +1910,11 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
                   // 4. output triangle(i,  k , j )
                   HalfedgeIter insideFront = candidate_active_edge->halfedge();
 
-                  if (mesh.createFrontTriangle(insideFront, k)) {
+                  FaceIter f;
+                  if (mesh.createFrontTriangle(insideFront, k, f)) {
                     printf("Triangle integrated, testing the edges\n");
                     EdgeIter e1 = insideFront->twin()->next()->edge();
-                    current_faces.push_back(insideFront->twin()->face());
+                    current_faces.push_back(f);
                     insideFront->twin()->face()->isSeed = false;
                     EdgeIter e2 = e1->halfedge()->next()->edge();
                     printf("Edges did not segmentation fault\n");
