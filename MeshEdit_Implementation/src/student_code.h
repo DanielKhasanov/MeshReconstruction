@@ -22,7 +22,7 @@ namespace CGL {
     std::vector<VertexIter> ball_pivot(HalfedgeMesh& mesh, HalfedgeIter& populate,std::vector<FaceIter> &current_faces);
 
     bool calculateBallPointDemo( Halfedge h, HalfedgeMesh& mesh, VertexIter& populate);
-    double set_rho(HalfedgeMesh& mesh, double rho);
+    double set_rho(HalfedgeMesh& mesh, double rho, bool set);
     std::vector<VertexIter > get_neighbors(Vector3D p);
     unordered_map<int, vector<VertexIter > *> cluster_vertices (HalfedgeMesh& mesh);
 

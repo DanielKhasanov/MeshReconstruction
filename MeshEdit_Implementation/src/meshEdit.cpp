@@ -1270,6 +1270,18 @@ namespace CGL {
                         Vector3D p = ver.position;
                         glVertex3d( p.x, p.y, p.z );
                         glEnd();
+
+                        Vector3D p2 = ver.position + ver.norm;
+                        // printf("p1 is %4f %4f %4f\n", p.x, p.y, p.z);
+                        // printf("p2 is %4f %4f %4f\n", p2.x, p2.y, p2.z);
+                        style = &selectStyle;
+                        setColor( style->edgeColor     );
+                        glLineWidth( style->strokeWidth/10.0  );
+
+                        glBegin(GL_LINES);
+                        glVertex3dv( &p.x );
+                        glVertex3dv( &p2.x );
+                        glEnd();
                       }
                       glEnable( GL_DEPTH_TEST );
                       if (floating) {
@@ -1288,17 +1300,7 @@ namespace CGL {
                           glEnd();
                           glEnable( GL_DEPTH_TEST );
 
-                          Vector3D p2 = ver.position + ver.norm;
-                          // printf("p1 is %4f %4f %4f\n", p.x, p.y, p.z);
-                          // printf("p2 is %4f %4f %4f\n", p2.x, p2.y, p2.z);
-                          style = &selectStyle;
-                          setColor( style->edgeColor     );
-                          glLineWidth( style->strokeWidth/10.0  );
 
-                          glBegin(GL_LINES);
-                          glVertex3dv( &p.x );
-                          glVertex3dv( &p2.x );
-                          glEnd();
                         }
                         glEnable(GL_LIGHTING);
                         for (FaceIter f : current_faces) {
