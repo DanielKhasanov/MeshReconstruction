@@ -231,6 +231,7 @@ class MeshEdit : public Renderer {
 
   vector<MeshNode> meshNodes;
   std::vector<VertexIter> floating_vertices;
+  std::vector<FaceIter> current_faces;
 
   // View Frustrum Variables.
   float hfov; // FIXME : I would like to specify the view frustrum

@@ -675,7 +675,7 @@ namespace CGL
     }
     // printf("done\n");
     // printf("Sorting neighbors\n");
-    std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
+    // std::sort(vec->begin(), vec->end(), [&p] (const VertexIter lhs, const VertexIter rhs ){  return (lhs->position - p).norm() < (rhs->position - p).norm();});
 
     // printf("Done\n");
     return *vec;
@@ -1572,7 +1572,7 @@ bool normal_at_point(Vector3D point, std::vector<VertexIter> points, Vector3D& p
     return false;
   }
 
-  std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh) {
+  std::vector<VertexIter> MeshResampler::ball_pivot( HalfedgeMesh& mesh, std::vector<FaceIter>& current_faces) {
     set_rho(mesh, 4.0);
 
     for (const auto &entry : map) {
